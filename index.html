@@ -683,6 +683,117 @@
     btn.disabled = false;
     btn.textContent = 'Витягнути';
 };
+        function cleanArticleText(text) {
+
+    // Прибираємо службові заголовки Jina
+    text = text
+        .replace(/^URL Source:.*$/gim, "")
+        .replace(/^Markdown Content:.*$/gim, "")
+        .replace(/^Title:\s*/gim, "")
+        .replace(/\r/g, "")
+        .trim();
+
+    const stopWords = [
+        "Related Articles",
+        "Related Posts",
+        "Read more",
+        "More stories",
+        "Most read",
+        "Most viewed",
+        "Advertisement",
+        "Advertisements",
+        "Subscribe",
+        "Sign in",
+        "Comments",
+        "Comment",
+        "Follow BBC",
+        "More on this story",
+        "Copyright",
+        "All rights reserved",
+        "Privacy Policy",
+        "Terms of Use",
+        "LEARN 3000 WORDS",
+        "How to improve your English"
+    ];
+
+    const lines = text.split("\n");
+
+    const result = [];
+
+    let articleStarted = false;
+
+    for (let line of lines) {
+
+        line = line.trim();
+
+        if (!line)
+            continue;
+
+        // Якщо почався службовий блок — закінчуємо статтю
+        if (stopWords.some(word => line.includes(word))) {
+            break;
+        }
+
+        // Видаляємо markdown
+        line = line
+            .replace(/^#+\s*/, "")
+            .replace(/\*\*(.*?)\*\*/g, "$1")
+            .replace(/\*(.*?)\*/g, "$1")
+            .replace(/\[(.*?)\]\(.*?\)/g, "$1");
+
+        // Пропускаємо службові рядки
+        if (/^(Published|Updated)$/i.test(line)) continue;
+        if (/^By\s/i.test(line)) continue;
+        if (/^(BBC News|Reuters|AP News|CNN)$/i.test(line)) continue;
+        if (/^Level\s+[123]$/i.test(line)) continue;
+        if (/^!?Image/i.test(line)) continue;
+        if (/^(Home|Menu|Search|Share|Print|Email)$/i.test(line)) continue;
+
+        // Дата
+        if (/^\d{1,2}\s+[A-Za-z]+\s+\d{4}$/.test(line)) continue;
+
+        // Час
+        if (/^\d{1,2}:\d{2}(\s?[A-Z]{2,5})?$/.test(line)) continue;
+
+        // Дата + час
+        if (/^\d{1,2}\s+[A-Za-z]+\s+\d{4}\s+\d{1,2}:\d{2}/.test(line)) continue;
+
+        // Початок статті
+        if (!articleStarted) {
+
+            // пропускаємо короткі службові рядки
+            if (line.length < 25)
+                continue;
+
+            articleStarted = true;
+        }
+
+        // Відкидаємо короткі рядки після початку статті
+        if (line.length < 5)
+            continue;
+
+        // Якщо в рядку майже немає літер
+        const letters = (line.match(/[A-Za-z]/g) || []).length;
+
+        if (letters < line.length * 0.35)
+            continue;
+
+        result.push(line);
+    }
+
+    // Видаляємо дублікати
+    const unique = [];
+    const seen = new Set();
+
+    for (const p of result) {
+        if (!seen.has(p)) {
+            seen.add(p);
+            unique.push(p);
+        }
+    }
+
+    return unique.join("\n\n").trim();
+}
 
         let currentYtUrl = "";
         window.loadYTIframe = () => {
