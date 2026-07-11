@@ -520,19 +520,28 @@
             }
         );
 
+        if (!res.ok) {
+            console.error(await res.text());
+            return null;
+        }
+
         const data = await res.json();
 
-        if (!data[0]?.translations?.length) return null;
+        if (!Array.isArray(data) || data.length === 0) {
+            return null;
+        }
 
-        return [{
-            text: data[0].translations[0].text.toLowerCase(),
-            score: 1
-        }];
+        return data.map(item => ({
+            text: item.text.toLowerCase(),
+            score: item.score || 1,
+            pos: item.pos || ""
+        }));
 
     } catch (e) {
         console.error(e);
         return null;
     }
+
 }
         const inputWord = document.getElementById('manual-word');
         const inputTrans = document.getElementById('manual-trans');
