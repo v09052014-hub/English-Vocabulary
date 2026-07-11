@@ -18,32 +18,36 @@
         .word-clickable:hover { background-color: #e0e7ff; color: #4338ca; border-bottom-color: #4338ca; }
         .word-saved { font-weight: 600; color: #047857; background-color: #d1fae5; }
         
-        /* YouTube Subs Highlight & Layout */
+        /* YouTube Subs & PiP */
         .yt-sub-line { transition: all 0.3s ease; border-radius: 8px; padding: 6px 10px; margin: 2px 0; display: block; border-left: 3px solid transparent; cursor: pointer; }
         .yt-sub-line:hover { background-color: #f8fafc; border-left-color: #cbd5e1; }
         .yt-sub-line.active-sub { background-color: #eef2ff; border-left-color: #4f46e5; color: #1e1b4b; font-weight: 500; transform: scale(1.01); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 
+        .yt-pip-mode { position: fixed !important; bottom: 20px; right: 20px; width: 320px !important; height: 180px !important; z-index: 100; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; }
+        @media (max-width: 640px) { .yt-pip-mode { width: 240px !important; height: 135px !important; bottom: 10px; right: 10px; } }
+
         #reader-content-wrapper { scroll-behavior: smooth; }
 
-        /* Constructor Styles */
+        /* Constructor & Inline Context */
         .letter-slot { min-width: 2.2rem; min-height: 2.8rem; border-bottom: 3px solid #cbd5e1; transition: all 0.2s; }
         .letter-tile { transition: transform 0.1s; cursor: pointer; }
         .letter-tile:active { transform: scale(0.9); }
         
+        .inline-input-context { display: inline-block; width: 140px; border: none; border-bottom: 2px solid #a5b4fc; background: #eef2ff; color: #4338ca; font-weight: bold; text-align: center; outline: none; border-radius: 4px 4px 0 0; padding: 0 4px; transition: all 0.2s; font-family: inherit; font-size: inherit; }
+        .inline-input-context:focus { border-bottom-color: #4f46e5; background: #e0e7ff; }
+
         /* Helpers */
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #4f46e5; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .srs-ring circle { transition: stroke-dasharray 0.5s ease; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased font-sans">
 
-    <div id="system-status" class="bg-blue-500 text-white text-center py-1.5 text-xs font-bold uppercase tracking-wider transition-all duration-500 shadow-md z-[100] relative">
-        Підключення...
-    </div>
+    <div id="system-status" class="bg-blue-500 text-white text-center py-1.5 text-xs font-bold uppercase tracking-wider transition-all duration-500 shadow-md z-[100] relative">Підключення...</div>
 
-    <!-- Modal: Alert -->
     <div id="custom-modal" class="hidden fixed inset-0 z-[200] bg-slate-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center">
             <p id="modal-text" class="text-slate-800 font-semibold mb-6 text-lg"></p>
@@ -54,26 +58,38 @@
         </div>
     </div>
 
+    <!-- Modal: SRS Info & Reset -->
+    <div id="srs-info-modal" class="hidden fixed inset-0 z-[200] bg-slate-900 bg-opacity-20 backdrop-blur-sm flex items-center justify-center p-4" onclick="closeSrsModal(event)">
+        <div class="bg-white p-5 rounded-2xl shadow-xl max-w-xs w-full text-center transform scale-95 transition-transform" id="srs-info-content">
+            <input type="hidden" id="srs-info-word-id">
+            <div class="text-4xl mb-2" id="srs-info-emoji">⏳</div>
+            <h4 class="font-bold text-slate-800 text-lg mb-1 lowercase" id="srs-info-word">word</h4>
+            <p class="text-sm font-bold text-indigo-600 mb-2" id="srs-info-level">Рівень: 1/4</p>
+            <p class="text-xs text-slate-500 mb-4 bg-slate-50 p-2 rounded-lg border border-slate-100" id="srs-info-time"></p>
+            
+            <button id="srs-btn-reset" onclick="resetWordProgress()" class="hidden w-full bg-rose-100 hover:bg-rose-200 text-rose-700 py-2.5 rounded-xl font-bold text-sm shadow-sm mb-2 transition">Скинути прогрес</button>
+            <button onclick="document.getElementById('srs-info-modal').classList.add('hidden')" class="w-full bg-slate-800 text-white py-2.5 rounded-xl font-bold text-sm shadow-sm">Закрити</button>
+        </div>
+    </div>
+
     <!-- Modal: Edit Word -->
     <div id="edit-word-modal" class="hidden fixed inset-0 z-[160] bg-slate-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-md w-full relative">
             <button onclick="closeEditModal()" class="absolute top-4 right-5 text-slate-400 hover:text-slate-700 font-bold text-2xl">&times;</button>
             <h3 class="text-xl font-bold text-slate-800 mb-4">Редагувати слово</h3>
-            
             <input type="hidden" id="edit-word-id">
             <div class="mb-3">
                 <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Слово</label>
-                <input type="text" id="edit-word-en" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 font-bold text-slate-800">
+                <input type="text" id="edit-word-en" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 font-bold text-slate-800 lowercase">
             </div>
             <div class="mb-3">
                 <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Переклад</label>
-                <input type="text" id="edit-word-uk" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 font-bold text-slate-800">
+                <input type="text" id="edit-word-uk" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 font-bold text-slate-800 lowercase">
             </div>
             <div class="mb-4">
                 <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Контекст (Речення)</label>
                 <textarea id="edit-word-ctx" rows="3" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm custom-scroll"></textarea>
             </div>
-            
             <button onclick="saveEditedWord()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-sm transition">Зберегти зміни</button>
         </div>
     </div>
@@ -83,8 +99,7 @@
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full relative">
             <button onclick="closeSyncModal()" class="absolute top-4 right-5 text-slate-400 hover:text-slate-700 font-bold text-2xl">&times;</button>
             <h3 class="text-xl font-bold text-slate-800 mb-2 text-center">Профіль 📱💻</h3>
-            <p class="text-xs text-slate-500 mb-4 text-center">Сайт використовує універсальний профіль. Зазвичай, тут нічого змінювати не треба.</p>
-            <div class="mb-5">
+            <div class="mb-5 mt-4">
                 <label class="text-xs font-bold text-slate-500 uppercase block mb-1">Поточний ID:</label>
                 <div class="flex">
                     <input type="text" id="sync-current-uid" readonly class="w-full p-2 bg-slate-50 border border-slate-300 border-r-0 rounded-l-xl font-mono text-xs font-bold text-slate-700 outline-none">
@@ -105,18 +120,15 @@
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-lg w-full relative max-h-[90vh] flex flex-col">
             <button onclick="closeBulkModal()" class="absolute top-4 right-5 text-slate-400 hover:text-slate-700 font-bold text-2xl">&times;</button>
             <h3 class="text-xl font-bold text-slate-800 mb-2">📥 Масовий імпорт слів</h3>
-            <p class="text-xs text-slate-500 mb-4 leading-relaxed">Вставте список слів (одне на рядок). Формат: просто слова, або <code class="bg-slate-100 px-1 rounded">слово - переклад</code>.</p>
-            
-            <textarea id="bulk-input-text" rows="6" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm mb-4 font-mono custom-scroll" placeholder="anxiety - тривога&#10;resilient&#10;obvious - очевидний"></textarea>
+            <textarea id="bulk-input-text" rows="6" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm mb-4 font-mono custom-scroll" placeholder="anxiety - тривога&#10;resilient"></textarea>
             
             <div id="bulk-preview-area" class="hidden flex-1 overflow-y-auto mb-4 border border-slate-200 rounded-xl p-2 bg-slate-50 custom-scroll">
                 <div id="bulk-loader" class="text-center py-4 text-indigo-600 font-bold text-sm hidden flex flex-col items-center gap-2"><div class="loader"></div> Обробка...</div>
                 <ul id="bulk-preview-list" class="space-y-2"></ul>
             </div>
-
             <div class="flex gap-3 mt-auto">
-                <button id="btn-bulk-process" onclick="processBulkText()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-xl font-bold shadow-sm transition">Обробити</button>
-                <button id="btn-bulk-save" onclick="saveBulkWords()" class="hidden flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-sm transition">Зберегти</button>
+                <button id="btn-bulk-process" onclick="processBulkText()" class="flex-1 bg-slate-800 text-white py-3 rounded-xl font-bold transition">Обробити</button>
+                <button id="btn-bulk-save" onclick="saveBulkWords()" class="hidden flex-1 bg-emerald-500 text-white py-3 rounded-xl font-bold transition">Зберегти</button>
             </div>
         </div>
     </div>
@@ -125,7 +137,7 @@
         <h1 class="font-bold text-indigo-600 text-xl tracking-tight flex items-center gap-2">
             <span class="text-2xl">🌌</span> LinguaSpace
         </h1>
-        <button onclick="openSyncModal()" class="text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-lg border border-indigo-100 transition shadow-sm flex items-center gap-1.5">
+        <button onclick="openSyncModal()" class="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-100 transition shadow-sm flex items-center gap-1.5">
             <span>Профіль 🔑</span>
         </button>
     </header>
@@ -140,19 +152,18 @@
 
     <main class="max-w-3xl mx-auto px-4 pt-5">
         
-        <!-- ================= СЛОВНИК ================= -->
         <section id="view-dictionary" class="fade-in block">
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-4">
                 <div class="flex flex-col gap-3">
                     <div class="flex flex-col sm:flex-row gap-3 relative">
                         <div class="flex-1 relative">
-                            <input type="text" id="manual-word" placeholder="Слово (Enter для перекладу)" class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-base">
+                            <input type="text" id="manual-word" placeholder="Слово (Enter для перекладу)" class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-base lowercase">
                             <button onclick="autoTranslateManual()" class="absolute right-2 top-2 p-1.5 text-indigo-500 hover:bg-indigo-100 rounded-lg transition" title="Перекласти">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" /></svg>
                             </button>
                         </div>
                         <div class="flex-1 relative">
-                            <input type="text" id="manual-trans" placeholder="Переклад (Enter для збереження)" class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-base bg-white" autocomplete="off">
+                            <input type="text" id="manual-trans" placeholder="Переклад (Enter для збереження)" class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-base bg-white lowercase" autocomplete="off">
                             <div id="trans-dropdown" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto custom-scroll">
                                 <ul id="trans-options-list" class="flex flex-col p-1"></ul>
                             </div>
@@ -163,17 +174,20 @@
             </div>
 
             <div class="flex justify-between items-center mb-4 px-1">
-                <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">Словник: <span id="word-count" class="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">0</span></span>
+                <div id="dict-header-controls" class="flex-1 flex items-center gap-3">
+                    <!-- Буде заповнено через JS -->
+                </div>
                 <div class="flex gap-2">
                     <button onclick="openBulkModal()" class="text-sm font-bold bg-white shadow-sm border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition flex items-center gap-1">📥 Імпорт</button>
                     <button onclick="exportWordsJSON()" class="text-sm font-bold bg-white shadow-sm border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition flex items-center gap-1">⚙️ Експорт</button>
                 </div>
             </div>
             
-            <div id="words-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+            <div id="dict-folder-tags" class="flex gap-2 overflow-x-auto custom-scroll pb-3 mb-2"></div>
+            
+            <div id="words-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
         </section>
 
-        <!-- ================= БІБЛІОТЕКА ================= -->
         <section id="view-library" class="fade-in hidden">
             <!-- List Mode -->
             <div id="library-list-view" class="block">
@@ -198,13 +212,12 @@
                     <textarea id="material-content" rows="8" class="w-full p-4 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-base mb-4 resize-none leading-relaxed custom-scroll" placeholder="Оригінальний текст (або скрипт відео)..."></textarea>
                 </div>
 
-                <!-- Tab: URL (Custom Parser) -->
+                <!-- Tab: URL (Jina AI Parser) -->
                 <div id="mode-url-area" class="hidden">
                     <div class="flex gap-2 mb-4">
                         <input type="url" id="material-url" placeholder="https://..." class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm">
-                        <button onclick="fetchArticleText()" class="bg-indigo-100 text-indigo-700 px-4 rounded-xl font-bold hover:bg-indigo-200 text-sm whitespace-nowrap">Витягнути текст</button>
+                        <button onclick="fetchArticleText(event)" class="bg-indigo-100 text-indigo-700 px-4 rounded-xl font-bold hover:bg-indigo-200 text-sm whitespace-nowrap">Витягнути текст</button>
                     </div>
-                    <p class="text-xs text-slate-500 mb-4">Використовується розумний екстрактор: відкидає меню, рекламу і залишає лише чистий текст.</p>
                 </div>
 
                 <!-- Tab: YouTube -->
@@ -216,19 +229,26 @@
                     <div id="yt-preview-container" class="w-full aspect-video bg-black rounded-xl mb-3 hidden overflow-hidden shadow-inner flex items-center justify-center text-slate-500 text-sm"></div>
                     
                     <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 relative">
-                        <h4 class="font-bold text-slate-700 mb-2 text-sm flex justify-between items-center">
-                            <span>Субтитри (.srt або текст)</span>
-                            <input type="file" id="yt-sub-file" accept=".srt,.txt" class="hidden" onchange="handleSubFileUpload(event)">
-                            <button onclick="document.getElementById('yt-sub-file').click()" class="text-xs bg-white border border-slate-300 px-3 py-1.5 rounded-lg shadow-sm hover:bg-slate-100">Вибрати файл</button>
+                        <h4 class="font-bold text-slate-700 mb-3 text-sm flex justify-between items-center">
+                            <span>Субтитри (.srt)</span>
                         </h4>
-                        <p class="text-xs text-slate-500 mb-3">Виберіть файл або вставте текст із таймкодами нижче вручну.</p>
-                        <textarea id="yt-sub-raw" rows="4" placeholder="1\n00:00:05,000 --> 00:00:08,000\nHello, world!" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-xs font-mono custom-scroll"></textarea>
+                        
+                        <div id="yt-dropzone" class="border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-xl p-6 text-center hover:bg-indigo-50 transition cursor-pointer mb-3" onclick="document.getElementById('yt-sub-file').click()">
+                            <p class="text-indigo-700 font-bold text-sm">Перетягніть файл .srt сюди<br><span class="text-xs font-normal text-slate-500">або натисніть, щоб вибрати</span></p>
+                            <input type="file" id="yt-sub-file" accept=".srt,.txt" class="hidden" onchange="handleSubFileUpload(event)">
+                        </div>
+
+                        <button onclick="document.getElementById('yt-manual-area').classList.toggle('hidden')" class="text-xs text-indigo-600 font-bold hover:underline mb-2">Або вставити текст вручну ↓</button>
+                        
+                        <div id="yt-manual-area" class="hidden">
+                            <textarea id="yt-sub-raw" rows="4" placeholder="1\n00:00:05,000 --> 00:00:08,000\nHello, world!" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-xs font-mono custom-scroll"></textarea>
+                        </div>
                     </div>
                 </div>
 
                 <div class="flex gap-3 mt-4">
-                    <button onclick="saveMaterial()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-lg shadow-sm active:scale-95 transition">Зберегти матеріал</button>
-                    <button onclick="cancelAddMaterial()" class="px-6 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold border border-slate-200 active:scale-95 transition">Скасувати</button>
+                    <button onclick="saveMaterial()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-lg shadow-sm transition">Зберегти матеріал</button>
+                    <button onclick="cancelAddMaterial()" class="px-6 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold border border-slate-200 transition">Скасувати</button>
                 </div>
             </div>
 
@@ -241,72 +261,80 @@
                     <h2 id="reader-title" class="font-bold text-lg text-slate-800 truncate flex-1"></h2>
                 </div>
                 
-                <div id="reader-yt-wrapper" class="w-full aspect-video bg-black rounded-xl mb-4 hidden shadow-md overflow-hidden relative sticky top-[65px] z-40">
+                <!-- Відео контейнер (буде ставати PiP при скролі) -->
+                <div id="reader-yt-wrapper" class="w-full aspect-video bg-black rounded-xl mb-4 hidden shadow-md overflow-hidden relative sticky top-[65px] z-40 transition-all">
                     <div id="reader-yt-player" class="w-full h-full"></div>
                 </div>
                 
-                <!-- Якщо це відео з субтитрами, цей блок буде скролитись всередині. Якщо текст - просто висота. -->
                 <div id="reader-content-wrapper" class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex-1 overflow-y-auto custom-scroll relative">
                     <div id="reader-content" class="text-reader text-lg leading-[2]"></div>
                 </div>
             </div>
         </section>
 
-        <!-- ================= ТРЕНУВАННЯ ================= -->
         <section id="view-training" class="fade-in hidden">
             
             <div id="train-hub-screen" class="block mt-4">
-                <div class="flex justify-between items-center mb-6 px-1">
-                    <h2 class="text-2xl font-bold text-slate-800">Режими тренувань</h2>
-                    <button onclick="document.getElementById('train-settings').classList.toggle('hidden')" class="text-slate-400 hover:text-slate-600 text-2xl transition">⚙️</button>
-                </div>
 
-                <div id="train-settings" class="hidden bg-slate-100 p-4 rounded-xl mb-6 flex justify-between items-center border border-slate-200">
-                    <label class="font-bold text-slate-600 text-sm">Слів у сесії:</label>
-                    <select id="bs-word-count" class="p-2 border border-slate-300 rounded-lg bg-white font-bold text-indigo-700 outline-none text-sm cursor-pointer">
-                        <option value="1">1 слово</option>
-                        <option value="4">4 слова</option>
-                        <option value="6" selected>6 слів</option>
-                        <option value="10">10 слів</option>
-                    </select>
-                </div>
-
-                <button onclick="startSession('all')" class="w-full bg-indigo-600 text-white p-6 rounded-2xl shadow-lg hover:bg-indigo-700 transition active:scale-95 text-left flex justify-between items-center mb-6 relative overflow-hidden group">
-                    <div class="absolute right-0 top-0 bottom-0 w-32 bg-indigo-500 opacity-20 skew-x-12 transform translate-x-4 group-hover:translate-x-0 transition-transform"></div>
+                <!-- Налаштування тренувань -->
+                <div class="bg-slate-100 p-4 rounded-xl mb-6 border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <h3 class="text-2xl font-bold mb-1">🧠 Brainstorm</h3>
-                        <p class="text-indigo-100 text-sm font-medium">Повний цикл для всіх обраних слів.</p>
+                        <label class="font-bold text-slate-600 text-xs uppercase mb-1 block">Папка/Матеріал:</label>
+                        <select id="train-folder-select" class="w-full p-2.5 border border-slate-300 rounded-lg bg-white font-bold text-slate-800 outline-none text-sm cursor-pointer shadow-sm">
+                            <option value="all">Усі матеріали</option>
+                            <!-- Динамічні опції -->
+                        </select>
                     </div>
-                </button>
+                    <div>
+                        <label class="font-bold text-slate-600 text-xs uppercase mb-1 block">Слів у Брейнштормі:</label>
+                        <select id="bs-word-count" class="w-full p-2.5 border border-slate-300 rounded-lg bg-white font-bold text-indigo-700 outline-none text-sm cursor-pointer shadow-sm">
+                            <option value="4">4 слова</option>
+                            <option value="6" selected>6 слів</option>
+                            <option value="10">10 слів</option>
+                            <option value="15">15 слів</option>
+                            <option value="20">20 слів</option>
+                        </select>
+                    </div>
+                </div>
 
-                <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 px-1">Окремі вправи</h3>
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <button onclick="startSession('word-trans')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-indigo-400 transition text-center flex flex-col items-center justify-center aspect-square group">
-                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">🇬🇧➡️🇺🇦</div>
-                        <h4 class="font-bold text-slate-700 text-sm">Слово → Переклад</h4>
+                <div class="flex gap-3 mb-6">
+                    <button onclick="startSession('all')" class="flex-1 bg-indigo-600 text-white py-4 rounded-xl shadow-md hover:bg-indigo-700 transition active:scale-95 text-center font-bold text-lg relative overflow-hidden group">
+                        <div class="absolute right-0 top-0 bottom-0 w-16 bg-indigo-500 opacity-20 skew-x-12 transform translate-x-4 group-hover:translate-x-0 transition-transform"></div>
+                        Почати Brainstorm
                     </button>
-                    <button onclick="startSession('trans-word')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-violet-400 transition text-center flex flex-col items-center justify-center aspect-square group">
-                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">🇬🇧⬅️🇺🇦</div>
-                        <h4 class="font-bold text-slate-700 text-sm">Переклад → Слово</h4>
+                    <!-- Кнопка Повторення вивчених -->
+                    <button onclick="startSession('review')" class="flex-1 bg-emerald-500 text-white py-4 rounded-xl shadow-md hover:bg-emerald-600 transition active:scale-95 text-center font-bold text-sm flex flex-col items-center justify-center relative overflow-hidden group">
+                        <span class="text-lg">🔄 Повторення</span>
+                        <span class="text-xs font-normal opacity-90">Лише вивчені (4/4)</span>
                     </button>
-                    <button onclick="startSession('constructor')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-fuchsia-400 transition text-center flex flex-col items-center justify-center aspect-square group">
-                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">🔠🔄</div>
-                        <h4 class="font-bold text-slate-700 text-sm">Конструктор</h4>
+                </div>
+
+                <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 px-1">Окремі вправи (по 10 слів)</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                    <button onclick="startSession('word-trans')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-indigo-400 transition text-center aspect-square group">
+                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">🇬🇧➡️🇺🇦</div><h4 class="font-bold text-slate-700 text-sm">Слово → Переклад</h4>
                     </button>
-                    <button onclick="startSession('typing')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-emerald-400 transition text-center flex flex-col items-center justify-center aspect-square group">
-                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">⌨️✍️</div>
-                        <h4 class="font-bold text-slate-700 text-sm">Написання</h4>
+                    <button onclick="startSession('trans-word')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-violet-400 transition text-center aspect-square group">
+                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">🇬🇧⬅️🇺🇦</div><h4 class="font-bold text-slate-700 text-sm">Переклад → Слово</h4>
                     </button>
-                    <button onclick="startSession('listening')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-sky-400 transition text-center flex flex-col items-center justify-center aspect-square group sm:col-span-2 md:col-span-1">
-                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">🎧👂</div>
-                        <h4 class="font-bold text-slate-700 text-sm">Аудіювання</h4>
+                    <button onclick="startSession('constructor')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-fuchsia-400 transition text-center aspect-square group">
+                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">🔠🔄</div><h4 class="font-bold text-slate-700 text-sm">Конструктор</h4>
+                    </button>
+                    <button onclick="startSession('typing')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-emerald-400 transition text-center aspect-square group">
+                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">⌨️✍️</div><h4 class="font-bold text-slate-700 text-sm">Написання</h4>
+                    </button>
+                    <button onclick="startSession('listening')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-sky-400 transition text-center aspect-square group">
+                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">🎧👂</div><h4 class="font-bold text-slate-700 text-sm">Аудіювання</h4>
+                    </button>
+                    <button onclick="startContextSession()" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-amber-400 transition text-center aspect-square group">
+                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">📝🕵️</div><h4 class="font-bold text-slate-700 text-sm">Контекст</h4>
                     </button>
                 </div>
             </div>
 
             <!-- Workspace -->
             <div id="bs-workspace" class="hidden mt-2 relative">
-                <button onclick="toggleMute()" id="btn-global-mute" class="absolute -top-10 right-0 p-2 bg-slate-100 hover:bg-slate-200 rounded-full shadow-sm border border-slate-200 z-10 text-xl transition-colors" title="Вимкнути авто-звук">🔊</button>
+                <button onclick="toggleMute()" id="btn-global-mute" class="absolute -top-10 right-0 p-2 bg-slate-100 hover:bg-slate-200 rounded-full shadow-sm border border-slate-200 z-10 text-xl transition-colors">🔊</button>
 
                 <div class="flex justify-between items-center mb-2 px-1">
                     <span id="bs-overall-stage" class="text-sm font-bold text-slate-500 uppercase tracking-wider"></span>
@@ -323,7 +351,7 @@
                     <div id="bs-success-reveal" class="hidden mt-4 bg-indigo-50/50 p-4 rounded-xl flex flex-col sm:flex-row items-center gap-4 text-left border border-indigo-100 fade-in z-10">
                         <img id="bs-success-img" class="w-24 h-24 sm:w-20 sm:h-20 rounded-lg object-cover shadow-sm bg-slate-200 flex-shrink-0">
                         <div>
-                            <h4 class="font-bold text-indigo-800 text-lg capitalize mb-1" id="bs-success-word"></h4>
+                            <h4 class="font-bold text-indigo-800 text-lg lowercase mb-1" id="bs-success-word"></h4>
                             <p class="text-sm text-slate-600 font-medium" id="bs-success-context"></p>
                         </div>
                     </div>
@@ -334,8 +362,8 @@
             </div>
 
             <div id="bs-results" class="hidden bg-white p-8 rounded-2xl shadow-xl border border-slate-100 text-center mt-6">
-                <div class="text-6xl mb-4">🏆</div>
-                <h2 class="text-2xl font-bold text-slate-800 mb-2">Завершено!</h2>
+                <div class="text-6xl mb-4" id="bs-result-emoji">🏆</div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-2" id="bs-result-title">Завершено!</h2>
                 <div id="bs-results-list" class="text-left bg-slate-50 p-5 rounded-xl mb-8 max-h-60 overflow-y-auto space-y-3 border border-slate-200 custom-scroll"></div>
                 <button onclick="endSession()" class="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold text-lg w-full shadow-lg active:scale-95 transition">До вибору тренувань</button>
             </div>
@@ -344,23 +372,17 @@
 
     <div id="inline-popup" class="hidden absolute z-[100] bg-white rounded-xl shadow-2xl border border-slate-200 p-4 w-72 transform -translate-x-1/2 transition-opacity">
         <div class="flex justify-between items-start mb-2">
-            <strong id="inline-popup-word" class="text-lg text-indigo-700 font-bold"></strong>
+            <strong id="inline-popup-word" class="text-lg text-indigo-700 font-bold lowercase"></strong>
             <button onclick="closeInlinePopup()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
         </div>
         <div id="inline-popup-loader" class="hidden text-indigo-500 font-bold text-xs flex items-center gap-2 mb-2"><div class="loader w-3 h-3"></div> Шукаємо...</div>
-        
-        <input type="text" id="inline-popup-trans-input" class="w-full mb-2 p-2 border border-slate-200 rounded-lg outline-none focus:border-indigo-600 text-base font-bold text-slate-800 bg-slate-50" placeholder="Натисніть Enter">
-        
+        <input type="text" id="inline-popup-trans-input" class="w-full mb-2 p-2 border border-slate-200 rounded-lg outline-none focus:border-indigo-600 text-base font-bold text-slate-800 bg-slate-50 lowercase" placeholder="Натисніть Enter">
         <div id="inline-trans-dropdown" class="mb-3 max-h-32 overflow-y-auto custom-scroll border border-slate-100 rounded-lg hidden bg-white">
             <ul id="inline-trans-options-list" class="flex flex-col"></ul>
         </div>
-        
-        <button onclick="saveWordFromInlinePopup()" id="inline-popup-save-btn" class="w-full bg-emerald-500 text-white py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-emerald-600 active:scale-95 transition hidden">
-            Зберегти (Enter)
-        </button>
+        <button onclick="saveWordFromInlinePopup()" id="inline-popup-save-btn" class="w-full bg-emerald-500 text-white py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-emerald-600 active:scale-95 transition hidden">Зберегти (Enter)</button>
     </div>
 
-    <!-- YouTube API Script -->
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <script type="module">
@@ -368,26 +390,27 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ТВОЇ КЛЮЧІ
         const firebaseConfig = {
             apiKey: "AIzaSyARJpUlEfJ53Q1a9qd9fyYC6gmHY58AKfI",
             authDomain: "my-english-vocab-training.firebaseapp.com",
             projectId: "my-english-vocab-training",
-            storageBucket: "my-english-vocab-training.firebasestorage.app",
-            messagingSenderId: "398593728951",
-            appId: "1:398593728951:web:d566edfbbcb92a5be9c832"
+            storageBucket: "my-english-vocab-training.firebasestorage.app"
         };
         const UNSPLASH_ACCESS_KEY = "bzl5TrYKEiXRN9HeLAdi5xIdgiN1PxviUgfqIjgDlsE";
         
         const LOCAL_UID_KEY = 'linguaspace_active_uid';
-        const DEFAULT_SHARED_UID = "linguaspace_universal_user_1"; // Універсальний ID для зручності
+        const DEFAULT_SHARED_UID = "linguaspace"; 
 
-        let app, auth, db;
-        let activeUid = null;
-        let originalUid = null;
+        const SRS_INTERVALS = [0, 3*60*60*1000, 12*60*60*1000, 24*60*60*1000, 72*60*60*1000];
+        const MAX_SRS_LEVEL = 4;
+
+        let app, auth, db, activeUid = null;
         let vocabulary = [], materials = [], currentMaterial = null;
         let unsubscribeWords = null, unsubscribeMaterials = null;
         let isGlobalAudioMuted = false;
+        
+        // Стан для відображення папок
+        let currentDictFolder = null; 
 
         window.showModal = (text, confirmMode = false, onConfirm = null) => {
             document.getElementById('custom-modal').classList.remove('hidden');
@@ -403,208 +426,146 @@
         function setSystemStatus(msg, type = 'info') {
             const status = document.getElementById('system-status');
             status.textContent = msg;
-            status.className = `text-white text-center py-1.5 text-xs font-bold uppercase tracking-wider transition-all duration-500 shadow-md z-[100] relative ${
-                type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'
-            }`;
+            status.className = `text-white text-center py-1.5 text-xs font-bold uppercase tracking-wider transition-all duration-500 shadow-md z-[100] relative ${type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'}`;
             if(type === 'success') { setTimeout(() => { status.style.transform = "translateY(-100%)"; }, 2500); } 
             else { status.style.transform = "translateY(0)"; }
         }
 
         try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-
+            app = initializeApp(firebaseConfig); auth = getAuth(app); db = getFirestore(app);
             onAuthStateChanged(auth, (user) => {
                 if (user) {
-                    originalUid = user.uid;
-                    // Встановлюємо дефолтний ID, щоб база працювала для всіх без зайвих маніпуляцій
                     const savedUid = localStorage.getItem(LOCAL_UID_KEY);
                     activeUid = savedUid ? savedUid : DEFAULT_SHARED_UID; 
                     localStorage.setItem(LOCAL_UID_KEY, activeUid);
-                    
                     setSystemStatus("Підключено до хмари ☁️", "success");
                     loadData();
-                } else {
-                    signInAnonymously(auth).catch((err) => { setSystemStatus("Помилка авторизації", "error"); });
-                }
+                } else { signInAnonymously(auth).catch(() => setSystemStatus("Помилка авторизації", "error")); }
             });
         } catch (e) { setSystemStatus("Критична помилка Firebase", "error"); }
 
         function loadData() {
             if (!activeUid) return;
-            if (unsubscribeWords) unsubscribeWords();
-            if (unsubscribeMaterials) unsubscribeMaterials();
+            if (unsubscribeWords) unsubscribeWords(); if (unsubscribeMaterials) unsubscribeMaterials();
 
-            const wordsPath = collection(db, 'users', activeUid, 'words');
-            const materialsPath = collection(db, 'users', activeUid, 'materials');
-
-            unsubscribeWords = onSnapshot(wordsPath, (snap) => {
-                vocabulary = [];
-                snap.forEach(d => vocabulary.push({ id: d.id, ...d.data() }));
+            unsubscribeWords = onSnapshot(collection(db, 'users', activeUid, 'words'), (snap) => {
+                vocabulary = []; snap.forEach(d => vocabulary.push({ id: d.id, ...d.data() }));
                 vocabulary.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-                document.getElementById('word-count').textContent = vocabulary.length;
-                renderDictionary();
-            }, (error) => { setSystemStatus("Помилка бази", "error"); });
+                
+                renderDictionary(); updateSrsReadyCount(); updateTrainFolderSelect();
+            });
 
-            unsubscribeMaterials = onSnapshot(materialsPath, (snap) => {
-                materials = [];
-                snap.forEach(d => materials.push({ id: d.id, ...d.data() }));
+            unsubscribeMaterials = onSnapshot(collection(db, 'users', activeUid, 'materials'), (snap) => {
+                materials = []; snap.forEach(d => materials.push({ id: d.id, ...d.data() }));
                 materials.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
                 renderMaterials();
             });
         }
 
-        window.openSyncModal = () => {
-            document.getElementById('sync-current-uid').value = activeUid;
-            document.getElementById('sync-modal').classList.remove('hidden');
-        };
-        window.closeSyncModal = () => {
-            document.getElementById('sync-modal').classList.add('hidden');
-            document.getElementById('sync-input-uid').value = '';
-        };
-        window.copyUid = () => {
-            const input = document.getElementById('sync-current-uid');
-            input.select(); document.execCommand('copy');
-            window.showModal("Ваш ID скопійовано! Надішліть його на інший пристрій.");
-        };
-        window.applyUid = () => {
-            const newUid = document.getElementById('sync-input-uid').value.trim();
-            if(!newUid || newUid.length < 5) return window.showModal("Будь ласка, вставте коректний ID.");
-            
-            activeUid = newUid;
-            localStorage.setItem(LOCAL_UID_KEY, activeUid);
-            document.getElementById('sync-current-uid').value = activeUid;
-            loadData();
-            closeSyncModal();
-            window.showModal("Успіх! Словники синхронізовано.");
-        };
-        window.resetUid = () => {
-            activeUid = DEFAULT_SHARED_UID;
-            localStorage.setItem(LOCAL_UID_KEY, activeUid);
-            document.getElementById('sync-current-uid').value = activeUid;
-            loadData();
-            closeSyncModal();
-            window.showModal("Повернуто ваш спільний словник.");
-        };
+        // --- Utils & Translation ---
+        function getSrsInfo(word) {
+            const level = word.srsLevel || 0; const nextTime = word.nextReviewTime || 0;
+            const now = Date.now(); return { level, nextTime, isReady: level === 0 || now >= nextTime };
+        }
+
+        function updateSrsReadyCount() {
+            document.getElementById('srs-ready-count').textContent = vocabulary.filter(w => getSrsInfo(w).isReady && (w.srsLevel||0) < MAX_SRS_LEVEL).length;
+        }
 
         async function getImageUrl(word) {
-            const fallbackImg = `https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&auto=format&fit=crop&q=60`;
-            if(!UNSPLASH_ACCESS_KEY || UNSPLASH_ACCESS_KEY.includes("ТВІЙ_КЛЮЧ")) return fallbackImg;
+            const fallback = `https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&auto=format&fit=crop&q=60`;
             try {
-                const cleanWord = word.split(' ')[0].toLowerCase().replace(/[^a-z]/g, '');
-                const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(cleanWord)}&per_page=1&client_id=${UNSPLASH_ACCESS_KEY}`);
-                if (!res.ok) return fallbackImg;
+                const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(word.split(' ')[0])}&per_page=1&client_id=${UNSPLASH_ACCESS_KEY}`);
                 const data = await res.json();
                 if(data.results && data.results.length > 0) return data.results[0].urls.regular;
-            } catch(e) { console.error("Unsplash Err", e); }
-            return fallbackImg;
+            } catch(e) {}
+            return fallback;
         }
 
-       async function fetchTranslationOptions(query) {
+        async function fetchTranslationOptions(query) {
+            try {
+                const res = await fetch("https://translator-proxy.v09052014.workers.dev/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: query, from: "en", to: "uk" }) });
+                const data = await res.json();
+                if (data.data?.translations?.length) return [{ text: data.data.translations[0].translatedText.toLowerCase(), score: 1 }];
+            } catch (e) {} return null;
+        }
 
-    try {
+        // --- Folders (Dictionary) ---
+        window.setDictFolder = (folderName) => { currentDictFolder = folderName; renderDictionary(); };
 
-        const res = await fetch(
-            "https://translator-proxy.v09052014.workers.dev/",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    text: query,
-                    from: "en",
-                    to: "uk"
-                })
+        function renderDictionary() {
+            const grid = document.getElementById('words-grid');
+            const tagsContainer = document.getElementById('dict-folder-tags');
+            
+            // Заповнення стрічки тегів
+            const sourcesMap = new Map();
+            vocabulary.forEach(w => { const src = w.source || "Інше"; sourcesMap.set(src, (sourcesMap.get(src) || 0) + 1); });
+            
+            let tagsHtml = `<button onclick="setDictFolder('all')" class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition border ${currentDictFolder === 'all' || currentDictFolder === null ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">Усі слова (${vocabulary.length})</button>`;
+            
+            for (let [src, count] of sourcesMap.entries()) {
+                let isSelected = currentDictFolder === src;
+                tagsHtml += `<button onclick="setDictFolder('${src}')" class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition border flex items-center gap-1.5 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">
+                    <span>${src === 'Словник' ? '✍️' : (src === 'Імпорт' ? '📥' : '📁')}</span> ${src} <span class="${isSelected ? 'text-indigo-200' : 'text-slate-400'} text-xs ml-1">${count}</span>
+                </button>`;
             }
-        );
+            tagsContainer.innerHTML = tagsHtml;
 
-        if (!res.ok) {
-            console.error(await res.text());
-            return null;
+            // Фільтрація та рендер слів
+            const filtered = (currentDictFolder === 'all' || currentDictFolder === null) 
+                ? vocabulary 
+                : vocabulary.filter(w => (w.source || "Інше") === currentDictFolder);
+            
+            grid.className = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4";
+            grid.innerHTML = filtered.map(item => {
+                const srs = getSrsInfo(item);
+                return `
+                <div onclick="openEditModal('${item.id}')" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative group cursor-pointer hover:shadow-md hover:border-indigo-300 transition h-40">
+                    <img src="${item.imageUrl}" class="w-full h-20 object-cover bg-slate-50 flex-shrink-0 border-b border-slate-100" onerror="imgError(this)">
+                    <div class="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white pr-10 relative">
+                        <strong class="text-slate-800 text-lg leading-tight truncate font-bold lowercase">${item.word}</strong>
+                        <span class="text-indigo-600 text-sm font-bold truncate lowercase">${item.translation}</span>
+                        <button onclick="showSrsInfo('${item.id}', event)" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-50 rounded-full transition">${getSrsSvg(srs.level, srs.isReady)}</button>
+                    </div>
+                    <button onclick="deleteWord('${item.id}', event)" class="absolute top-2 right-2 w-7 h-7 bg-white rounded-full shadow-md text-rose-500 font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition border hover:bg-rose-50">&times;</button>
+                </div>`
+            }).join('');
         }
 
-        const data = await res.json();
-
-        if (!data.data?.translations?.length) {
-            return null;
-        }
-
-        return [{
-            text: data.data.translations[0].translatedText.toLowerCase(),
-            score: 1
-        }];
-
-    } catch (e) {
-        console.error(e);
-        return null;
-    }
-
-}
-        const inputWord = document.getElementById('manual-word');
-        const inputTrans = document.getElementById('manual-trans');
-        const dropdown = document.getElementById('trans-dropdown');
-        const optionsList = document.getElementById('trans-options-list');
-
-        inputWord.addEventListener('keypress', (e) => {
-            if(e.key === 'Enter') { e.preventDefault(); autoTranslateManual(); inputTrans.focus(); }
-        });
-        
-        // Виправляємо конфлікти клавіш
-        inputTrans.addEventListener('keypress', (e) => {
-            if(e.key === 'Enter') {
-                e.preventDefault();
-                e.stopPropagation();
-                addWordManual(); 
-            }
-        });
+        // --- Modals & Global actions ---
+        window.openSyncModal = () => { document.getElementById('sync-current-uid').value = activeUid; document.getElementById('sync-modal').classList.remove('hidden'); };
+        window.closeSyncModal = () => document.getElementById('sync-modal').classList.add('hidden');
+        window.copyUid = () => { document.getElementById('sync-current-uid').select(); document.execCommand('copy'); window.showModal("ID скопійовано!"); };
+        window.applyUid = () => { const n = document.getElementById('sync-input-uid').value.trim(); if(n.length>4){ activeUid=n; localStorage.setItem(LOCAL_UID_KEY, activeUid); loadData(); closeSyncModal(); window.showModal("Синхронізовано."); }};
+        window.resetUid = () => { activeUid = DEFAULT_SHARED_UID; localStorage.setItem(LOCAL_UID_KEY, activeUid); loadData(); closeSyncModal(); window.showModal("Повернуто спільний ID."); };
 
         window.autoTranslateManual = async () => {
-            const word = inputWord.value.trim();
-            if(!word) return;
+            const word = document.getElementById('manual-word').value.trim().toLowerCase(); if(!word) return;
+            const inputTrans = document.getElementById('manual-trans'), dropdown = document.getElementById('trans-dropdown');
             inputTrans.value = 'Шукаємо...'; dropdown.classList.add('hidden');
             const options = await fetchTranslationOptions(word);
-            
-            if(options && options.length > 0) {
+            if(options) {
                 inputTrans.value = options[0].text;
-                optionsList.innerHTML = options.map(opt => {
-                    const pct = Math.max(10, Math.min(100, opt.score * 100));
-                    return `
-                    <li onclick="selectTranslation('${opt.text.replace(/'/g, "\\'")}')" class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 flex flex-col justify-center">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="font-bold text-slate-800">${opt.text}</span>
-                            <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">${Math.round(pct)}%</span>
-                        </div>
-                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                            <div class="bg-indigo-400 h-full rounded-full" style="width: ${pct}%"></div>
-                        </div>
-                    </li>`;
-                }).join('');
+                document.getElementById('trans-options-list').innerHTML = options.map(opt => `<li onclick="selectTranslation('${opt.text.replace(/'/g, "\\'")}')" class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 flex justify-between"><span class="font-bold text-slate-800">${opt.text}</span></li>`).join('');
                 dropdown.classList.remove('hidden');
             } else { inputTrans.value = 'Не знайдено'; }
         };
-
-        window.selectTranslation = (text) => { inputTrans.value = text; dropdown.classList.add('hidden'); inputTrans.focus(); };
-        document.addEventListener('click', (e) => { if(!e.target.closest('#trans-dropdown') && e.target !== inputTrans) dropdown.classList.add('hidden'); });
+        window.selectTranslation = (text) => { document.getElementById('manual-trans').value = text.toLowerCase(); document.getElementById('trans-dropdown').classList.add('hidden'); };
 
         window.addWordManual = async () => {
             if(!activeUid) return;
-            const word = inputWord.value.trim().toLowerCase(), trans = inputTrans.value.trim().toLowerCase();
+            const word = document.getElementById('manual-word').value.trim().toLowerCase(); 
+            const trans = document.getElementById('manual-trans').value.trim().toLowerCase();
             if(!word || !trans || trans === 'шукаємо...') return;
-            
             const btn = document.getElementById('btn-add-manual'); const orig = btn.textContent; btn.disabled = true; btn.textContent = "...";
             try {
                 const imgUrl = await getImageUrl(word);
-                await addDoc(collection(db, 'users', activeUid, 'words'), {
-                    word, translation: trans, imageUrl: imgUrl, context: "", source: "Словник", createdAt: serverTimestamp()
-                });
-                inputWord.value = ''; inputTrans.value = ''; dropdown.classList.add('hidden'); inputWord.focus();
-            } catch (err) { window.showModal("Помилка збереження."); } finally { btn.disabled = false; btn.textContent = orig; }
+                await addDoc(collection(db, 'users', activeUid, 'words'), { word, translation: trans, imageUrl: imgUrl, context: "", source: "Словник", createdAt: serverTimestamp(), srsLevel: 0, nextReviewTime: Date.now() });
+                document.getElementById('manual-word').value = ''; document.getElementById('manual-trans').value = ''; document.getElementById('manual-word').focus();
+            } catch (err) {} finally { btn.disabled = false; btn.textContent = orig; }
         };
 
         window.deleteWord = (id, e) => { e.stopPropagation(); window.showModal("Видалити слово?", true, async () => await deleteDoc(doc(db, 'users', activeUid, 'words', id))); };
-
         window.openEditModal = (id) => {
             const word = vocabulary.find(v => v.id === id); if(!word) return;
             document.getElementById('edit-word-id').value = id; document.getElementById('edit-word-en').value = word.word;
@@ -612,37 +573,45 @@
             document.getElementById('edit-word-modal').classList.remove('hidden');
         };
         window.closeEditModal = () => document.getElementById('edit-word-modal').classList.add('hidden');
-        
         window.saveEditedWord = async () => {
-            const id = document.getElementById('edit-word-id').value;
-            const word = document.getElementById('edit-word-en').value.trim(); 
-            const translation = document.getElementById('edit-word-uk').value.trim(); 
-            const context = document.getElementById('edit-word-ctx').value.trim();
-            if(!word || !translation || !activeUid) return;
+            const id = document.getElementById('edit-word-id').value, word = document.getElementById('edit-word-en').value.trim().toLowerCase(), translation = document.getElementById('edit-word-uk').value.trim().toLowerCase(), context = document.getElementById('edit-word-ctx').value.trim();
+            if(word && translation) { await updateDoc(doc(db, 'users', activeUid, 'words', id), { word, translation, context }); closeEditModal(); }
+        };
+        
+        window.showSrsInfo = (id, e) => {
+            e.stopPropagation(); const word = vocabulary.find(v => v.id === id); if(!word) return;
+            const info = getSrsInfo(word);
+            document.getElementById('srs-info-word-id').value = id;
+            document.getElementById('srs-info-word').textContent = word.word;
+            document.getElementById('srs-info-level').textContent = `Вивчено: ${info.level}/${MAX_SRS_LEVEL}`;
+            const btnReset = document.getElementById('srs-btn-reset');
+            
+            if(info.level >= MAX_SRS_LEVEL) {
+                document.getElementById('srs-info-emoji').textContent = "🏆"; document.getElementById('srs-info-time').textContent = "Слово повністю вивчене!";
+                btnReset.classList.remove('hidden');
+            } else {
+                document.getElementById('srs-info-emoji').textContent = info.isReady ? "✅" : "⏳";
+                const ms = info.nextTime - Date.now();
+                document.getElementById('srs-info-time').textContent = ms <= 0 ? "Готово до тренування!" : `Наступне через ${Math.floor(ms/(1000*60*60))}г ${Math.floor((ms%(1000*60*60))/(1000*60))}хв`;
+                btnReset.classList.add('hidden');
+            }
+            document.getElementById('srs-info-modal').classList.remove('hidden');
+        };
+        window.closeSrsModal = (e) => { if(e.target.id === 'srs-info-modal') document.getElementById('srs-info-modal').classList.add('hidden'); };
+        
+        window.resetWordProgress = async () => {
+            const id = document.getElementById('srs-info-word-id').value;
+            if(!id) return;
             try {
-                await updateDoc(doc(db, 'users', activeUid, 'words', id), { word, translation, context });
-                closeEditModal();
-            } catch(e) { window.showModal("Помилка оновлення."); }
+                await updateDoc(doc(db, 'users', activeUid, 'words', id), { srsLevel: 0, nextReviewTime: Date.now() });
+                document.getElementById('srs-info-modal').classList.add('hidden');
+                window.showModal("Прогрес скинуто. Слово знову в черзі!");
+            } catch(e) {}
         };
 
-        window.exportWordsJSON = () => {
-            if(vocabulary.length === 0) return window.showModal("Словник порожній!");
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(vocabulary, null, 2));
-            const dl = document.createElement('a'); dl.setAttribute("href", dataStr); dl.setAttribute("download", "linguaspace_words.json");
-            document.body.appendChild(dl); dl.click(); dl.remove();
-        };
-
-        function renderDictionary() {
-            document.getElementById('words-grid').innerHTML = vocabulary.map(item => `
-                <div onclick="openEditModal('${item.id}')" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative group cursor-pointer hover:shadow-md hover:border-indigo-300 transition h-48">
-                    <img src="${item.imageUrl}" class="w-full h-28 object-cover bg-slate-50 flex-shrink-0 border-b border-slate-100" onerror="imgError(this)">
-                    <div class="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white">
-                        <strong class="text-slate-800 text-lg leading-tight capitalize truncate font-bold">${item.word}</strong>
-                        <span class="text-indigo-600 text-sm font-bold truncate">${item.translation}</span>
-                    </div>
-                    <button onclick="deleteWord('${item.id}', event)" class="absolute top-2 right-2 w-7 h-7 bg-white rounded-full shadow-md text-rose-500 font-bold opacity-0 group-hover:opacity-100 flex items-center justify-center transition border hover:bg-rose-50">&times;</button>
-                </div>
-            `).join('');
+        function getSrsSvg(level, isReady) {
+            const pct = (level / MAX_SRS_LEVEL) * 100; const color = isReady && level < MAX_SRS_LEVEL ? '#ef4444' : (level >= MAX_SRS_LEVEL ? '#10b981' : '#4f46e5');
+            return `<svg viewBox="0 0 36 36" class="w-8 h-8 srs-ring -rotate-90"><path class="text-slate-200" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" /><path stroke="${color}" stroke-width="3" stroke-dasharray="${pct} 100" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />${isReady && level < MAX_SRS_LEVEL ? `<circle cx="18" cy="18" r="4" fill="${color}" />` : ''}${level >= MAX_SRS_LEVEL ? `<path d="M13 18 L16 21 L23 14" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>` : ''}</svg>`;
         }
 
         window.openBulkModal = () => { document.getElementById('bulk-add-modal').classList.remove('hidden'); document.getElementById('bulk-preview-area').classList.add('hidden'); document.getElementById('btn-bulk-save').classList.add('hidden'); document.getElementById('btn-bulk-process').classList.remove('hidden'); document.getElementById('bulk-input-text').value = ''; };
@@ -654,25 +623,12 @@
             const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
             document.getElementById('bulk-preview-area').classList.remove('hidden'); document.getElementById('bulk-loader').classList.remove('hidden');
             const list = document.getElementById('bulk-preview-list'); list.innerHTML = '';
-            document.getElementById('btn-bulk-process').classList.add('hidden');
-            bulkParsedWords = [];
-            
+            document.getElementById('btn-bulk-process').classList.add('hidden'); bulkParsedWords = [];
             for(let line of lines) {
-                try {
-                    let w = "", t = "";
-                    if(line.includes('-')) {
-                        const parts = line.split('-'); w = parts[0].trim().toLowerCase(); t = parts.slice(1).join('-').trim().toLowerCase();
-                    } else {
-                        w = line.toLowerCase();
-                        const opts = await fetchTranslationOptions(w);
-                        if(opts && opts.length > 0) t = opts[0].text; else t = "переклад";
-                    }
-                    if(w && t) {
-                        bulkParsedWords.push({word: w, trans: t});
-                        list.innerHTML += `<li class="flex justify-between border-b border-slate-200 pb-1"><span class="font-bold">${w}</span><span class="text-indigo-600">${t}</span></li>`;
-                        const previewArea = document.getElementById('bulk-preview-area'); previewArea.scrollTop = previewArea.scrollHeight;
-                    }
-                } catch(e) {}
+                let w = "", t = "";
+                if(line.includes('-')) { const parts = line.split('-'); w = parts[0].trim().toLowerCase(); t = parts.slice(1).join('-').trim().toLowerCase(); } 
+                else { w = line.toLowerCase(); const opts = await fetchTranslationOptions(w); if(opts) t = opts[0].text; else t = "переклад"; }
+                if(w && t) { bulkParsedWords.push({word: w, trans: t}); list.innerHTML += `<li class="flex justify-between border-b border-slate-200 pb-1"><span class="font-bold lowercase">${w}</span><span class="text-indigo-600 lowercase">${t}</span></li>`; }
             }
             document.getElementById('bulk-loader').classList.add('hidden');
             if(bulkParsedWords.length > 0) document.getElementById('btn-bulk-save').classList.remove('hidden');
@@ -680,65 +636,62 @@
 
         window.saveBulkWords = async () => {
             if(!activeUid || bulkParsedWords.length === 0) return;
-            const btn = document.getElementById('btn-bulk-save'); btn.textContent = "Зберігаємо..."; btn.disabled = true;
+            const btn = document.getElementById('btn-bulk-save'); btn.textContent = "..."; btn.disabled = true;
             try {
                 for(let item of bulkParsedWords) {
                     const imgUrl = await getImageUrl(item.word);
-                    await addDoc(collection(db, 'users', activeUid, 'words'), {
-                        word: item.word, translation: item.trans, imageUrl: imgUrl, context: "", source: "Імпорт", createdAt: serverTimestamp()
-                    });
+                    await addDoc(collection(db, 'users', activeUid, 'words'), { word: item.word, translation: item.trans, imageUrl: imgUrl, context: "", source: "Імпорт", createdAt: serverTimestamp(), srsLevel: 0, nextReviewTime: Date.now() });
                 }
                 closeBulkModal(); window.showModal("Імпорт успішно завершено!");
-            } catch(e) { window.showModal("Помилка масового збереження."); }
-            finally { btn.textContent = "Зберегти"; btn.disabled = false; }
+            } catch(e) {} finally { btn.textContent = "Зберегти"; btn.disabled = false; }
         };
 
-        let addMaterialMode = 'text'; 
+        // --- Library ---
         window.showAddTextForm = () => { document.getElementById('library-list-view').classList.add('hidden'); document.getElementById('library-add-view').classList.remove('hidden'); setAddMode('text'); };
         window.cancelAddMaterial = () => { document.getElementById('library-add-view').classList.add('hidden'); document.getElementById('library-list-view').classList.remove('hidden'); document.getElementById('material-title').value=''; document.getElementById('material-content').value=''; document.getElementById('yt-preview-container').innerHTML = ''; currentYtId = ""; };
-        
         window.setAddMode = (mode) => {
-            addMaterialMode = mode;
             ['text', 'url', 'yt'].forEach(m => {
                 document.getElementById(`mode-${m}-area`).classList.toggle('hidden', m !== mode);
                 document.getElementById(`tab-add-${m}`).className = m === mode ? 'px-4 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-lg text-sm transition' : 'px-4 py-2 text-slate-500 font-bold rounded-lg hover:bg-slate-50 text-sm transition';
             });
         };
 
-        // НОВИЙ МЕХАНІЗМ ВИДОБУТКУ СТАТЕЙ (Без сміття Markdown)
-        window.fetchArticleText = async () => {
-            const url = document.getElementById('material-url').value; if(!url) return;
-            const btn = event.currentTarget; btn.textContent = 'Обробка...';
+        // JINA AI PARSER (Відновлений)
+        function cleanMarkdownToPlainText(md) {
+            return md.replace(/^Title:.*$/gm, '').replace(/^URL:.*$/gm, '')
+                     .replace(/!\[.*?\]\(.*?\)/g, '') // Видалення картинок ![alt](url)
+                     .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Зняття посилань, залишаємо текст
+                     .replace(/[#*_~>]/g, '') // Зняття розмітки markdown
+                     .replace(/!\[.*?\]/g, '') // Видалення залишків картинок без лінків
+                     .replace(/<[^>]*>?/gm, '') // Видалення будь-яких HTML тегів
+                     .replace(/\n{3,}/g, '\n\n').trim();
+        }
+
+        window.fetchArticleText = async (e) => {
+            const url = document.getElementById('material-url').value.trim(); if(!url) return;
+            const btn = e ? e.currentTarget : document.querySelector('#mode-url-area button');
+            const originalBtnText = btn ? btn.textContent : 'Витягнути текст';
+            if (btn) btn.textContent = 'Обробка...';
+            
             try {
-                const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-                const data = await response.json();
-                const doc = new DOMParser().parseFromString(data.contents, 'text/html');
+                const res = await fetch(`https://r.jina.ai/${encodeURIComponent(url)}`);
+                if(!res.ok) throw new Error("Jina failed");
+                const rawMarkdown = await res.text();
                 
-                // Знищуємо всі потенційно сміттєві елементи
-                doc.querySelectorAll('script, style, nav, header, footer, aside, iframe, noscript, .ad, .advertisement, form').forEach(el => el.remove());
+                let title = "Стаття з Інтернету";
+                const titleMatch = rawMarkdown.match(/^Title:\s*(.+)$/m);
+                if (titleMatch && titleMatch[1]) { title = titleMatch[1].trim(); }
                 
-                const title = doc.querySelector('title')?.innerText.trim() || "Стаття з Інтернету";
                 document.getElementById('material-title').value = title;
+                const cleanText = cleanMarkdownToPlainText(rawMarkdown);
+                document.getElementById('material-content').value = cleanText;
                 
-                // Шукаємо основний контент
-                const articleNode = doc.querySelector('article') || doc.querySelector('main') || doc.body;
-                
-                // Збираємо тільки змістовні текстові блоки (параграфи і заголовки)
-                const paragraphs = Array.from(articleNode.querySelectorAll('p, h1, h2, h3, h4, li'))
-                    .map(el => el.textContent.trim().replace(/\s+/g, ' '))
-                    .filter(text => text.length > 30); // Відкидаємо короткі уривки, які часто є лінками чи кнопками
-                
-                let finalText = paragraphs.join('\n\n');
-                
-                // Фолбек якщо стаття мала іншу структуру
-                if(finalText.length < 100) {
-                    finalText = articleNode.textContent.replace(/\s+/g, ' ').trim();
-                }
-                
-                document.getElementById('material-content').value = finalText;
-                setAddMode('text'); 
-            } catch(e) { window.showModal("Не вдалося витягнути текст (можливо, сайт блокує запити)."); }
-            btn.textContent = 'Витягнути текст';
+                setAddMode('text');
+                window.showModal("Текст успішно витягнуто та очищено від сміття!");
+            } catch(err) {
+                console.error("Fetch err:", err);
+                window.showModal("Не вдалося витягнути текст. Спробуйте інше посилання або вставте текст вручну.");
+            } finally { if (btn) btn.textContent = originalBtnText; }
         };
 
         let currentYtId = "";
@@ -750,343 +703,260 @@
                 const container = document.getElementById('yt-preview-container');
                 container.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${currentYtId}" frameborder="0" allowfullscreen></iframe>`;
                 container.classList.remove('hidden');
-            } else { window.showModal("Невірне посилання YouTube."); }
+            } else { window.showModal("Невірне посилання."); }
         };
 
-        // Завантаження файлу субтитрів
-        window.handleSubFileUpload = (e) => {
-            const file = e.target.files[0];
-            if(!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                document.getElementById('yt-sub-raw').value = ev.target.result;
-            };
+        // Drag & Drop для субтитрів
+        const dropzone = document.getElementById('yt-dropzone');
+        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('border-indigo-500', 'bg-indigo-100'); });
+        dropzone.addEventListener('dragleave', (e) => { e.preventDefault(); dropzone.classList.remove('border-indigo-500', 'bg-indigo-100'); });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropzone.classList.remove('border-indigo-500', 'bg-indigo-100');
+            const file = e.dataTransfer.files[0]; if(file) processSubFile(file);
+        });
+        
+        window.handleSubFileUpload = (e) => { const file = e.target.files[0]; if(file) processSubFile(file); };
+        
+        function processSubFile(file) {
+            const reader = new FileReader(); 
+            reader.onload = (ev) => { 
+                document.getElementById('yt-sub-raw').value = ev.target.result; 
+                document.getElementById('yt-manual-area').classList.remove('hidden');
+                dropzone.innerHTML = `<p class="text-emerald-600 font-bold text-sm">✅ Файл завантажено: ${file.name}</p>`;
+            }; 
             reader.readAsText(file);
         }
 
-        // НОВИЙ І НАДІЙНИЙ ПАРСЕР СУБТИТРІВ
         function parseCleanSRT(raw) {
-            const blocks = raw.replace(/\r\n/g, '\n').split('\n\n');
-            const subs = [];
-            
-            function timeToSeconds(t) {
-                const parts = t.replace(',', '.').split(':');
-                if(parts.length === 3) {
-                    return (parseFloat(parts[0]) * 3600) + (parseFloat(parts[1]) * 60) + parseFloat(parts[2]);
-                }
-                return 0;
-            }
-
+            const blocks = raw.replace(/\r\n/g, '\n').split('\n\n'); const subs = [];
+            const timeToSeconds = (t) => { const p = t.replace(',', '.').split(':'); return p.length===3 ? (parseFloat(p[0])*3600)+(parseFloat(p[1])*60)+parseFloat(p[2]) : 0; };
             blocks.forEach(block => {
-                const lines = block.trim().split('\n');
-                // Шукаємо рядок, де є '-->'
-                const timeIndex = lines.findIndex(l => l.includes('-->'));
-                
+                const lines = block.trim().split('\n'); const timeIndex = lines.findIndex(l => l.includes('-->'));
                 if(timeIndex !== -1 && lines.length > timeIndex + 1) {
-                    const timeParts = lines[timeIndex].split('-->');
-                    const start = timeToSeconds(timeParts[0].trim());
-                    const end = timeToSeconds(timeParts[1].trim());
-                    
-                    // Все що після таймкоду - це текст
-                    const textLines = lines.slice(timeIndex + 1).join(' ');
-                    // Очищуємо від HTML тегів та фігурних дужок (форматування SRT)
-                    const cleanText = textLines.replace(/<[^>]*>/g, '').replace(/\{[^}]*\}/g, '').trim();
-                    
-                    if(cleanText && !isNaN(start) && !isNaN(end)) {
-                        subs.push({ start, end, text: cleanText });
-                    }
+                    const timeParts = lines[timeIndex].split('-->'); const start = timeToSeconds(timeParts[0].trim()); const end = timeToSeconds(timeParts[1].trim());
+                    const cleanText = lines.slice(timeIndex + 1).join(' ').replace(/<[^>]*>/g, '').replace(/\{[^}]*\}/g, '').trim();
+                    if(cleanText && !isNaN(start)) subs.push({ start, end, text: cleanText });
                 }
-            });
-            return subs;
+            }); return subs;
         }
 
         window.saveMaterial = async () => {
             const title = document.getElementById('material-title').value.trim() || "Матеріал";
-            let content = document.getElementById('material-content').value.trim();
-            let parsedSubs = [];
-            
+            let content = document.getElementById('material-content').value.trim(); let parsedSubs = [];
             if (addMaterialMode === 'yt' && currentYtId) {
                 const rawSubs = document.getElementById('yt-sub-raw').value;
-                if(rawSubs) {
-                    parsedSubs = parseCleanSRT(rawSubs);
-                    if(parsedSubs.length > 0) {
-                        content = parsedSubs.map(s => s.text).join('\n'); 
-                    } else {
-                        // Фолбек якщо таймкоди не розпізналися (просто зберігаємо текст)
-                        content = rawSubs;
-                    }
-                }
+                if(rawSubs) { parsedSubs = parseCleanSRT(rawSubs); if(parsedSubs.length > 0) content = parsedSubs.map(s => s.text).join('\n'); else content = rawSubs; }
             }
-
             if(!content && !currentYtId) return window.showModal("Вставте текст або додайте відео.");
             if(!activeUid) return;
-            
             try {
-                await addDoc(collection(db, 'users', activeUid, 'materials'), { 
-                    title, 
-                    content, 
-                    ytId: addMaterialMode === 'yt' ? currentYtId : "", 
-                    subtitles: parsedSubs.length > 0 ? JSON.stringify(parsedSubs) : null,
-                    createdAt: serverTimestamp() 
-                });
+                await addDoc(collection(db, 'users', activeUid, 'materials'), { title, content, ytId: addMaterialMode === 'yt' ? currentYtId : "", subtitles: parsedSubs.length > 0 ? JSON.stringify(parsedSubs) : null, createdAt: serverTimestamp() });
                 cancelAddMaterial(); switchTab('library'); window.showModal("Матеріал збережено!");
-                
-                document.getElementById('material-yt-url').value = '';
-                document.getElementById('yt-preview-container').innerHTML = '';
-                document.getElementById('yt-preview-container').classList.add('hidden');
-                document.getElementById('yt-sub-raw').value = '';
-                currentYtId = "";
-            } catch (err) { window.showModal("Помилка збереження."); }
+            } catch (err) {}
         };
 
         function renderMaterials() {
             document.getElementById('materials-grid').innerHTML = materials.map(m => `
                 <div onclick="openReader('${m.id}')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:border-indigo-400 transition flex justify-between items-center group relative overflow-hidden">
                     <div class="absolute left-0 top-0 bottom-0 w-1.5 ${m.ytId ? 'bg-red-500' : 'bg-indigo-500'} opacity-0 group-hover:opacity-100 transition"></div>
-                    <div class="flex-1 truncate pl-2">
-                        <h3 class="font-bold text-slate-800 truncate text-lg flex items-center gap-2">${m.ytId ? '<span class="text-red-500">📺</span>' : ''} ${m.title}</h3>
-                        <p class="text-sm text-slate-500 mt-1 truncate font-medium">${m.content ? m.content.substring(0, 80) + '...' : 'Відео матеріал'}</p>
-                    </div>
-                    <button onclick="deleteMaterial('${m.id}', event)" class="ml-3 text-slate-300 hover:text-rose-500 p-2 opacity-0 group-hover:opacity-100 transition text-2xl font-bold bg-white rounded-full">&times;</button>
+                    <div class="flex-1 truncate pl-2"><h3 class="font-bold text-slate-800 truncate text-lg">${m.ytId ? '📺 ' : ''}${m.title}</h3></div>
+                    <button onclick="deleteMaterial('${m.id}', event)" class="ml-3 text-slate-300 hover:text-rose-500 p-2 opacity-0 group-hover:opacity-100 transition text-2xl font-bold rounded-full">&times;</button>
                 </div>
             `).join('');
         }
 
-        let ytPlayer = null;
-        let syncInterval = null;
+        window.deleteMaterial = (id, e) => { e.stopPropagation(); window.showModal("Видалити матеріал?", true, async () => await deleteDoc(doc(db, 'users', activeUid, 'materials', id))); };
+
+        // --- Reader & YouTube PiP ---
+        let ytPlayer = null; let syncInterval = null;
 
         window.openReader = (id) => {
-            const m = materials.find(x => x.id === id); if(!m) return;
-            currentMaterial = m;
+            const m = materials.find(x => x.id === id); if(!m) return; currentMaterial = m;
             document.getElementById('library-list-view').classList.add('hidden'); document.getElementById('library-read-view').classList.remove('hidden');
             document.getElementById('reader-title').textContent = m.title;
             
             const ytWrapper = document.getElementById('reader-yt-wrapper');
-            const contentWrapper = document.getElementById('reader-content-wrapper');
-
+            ytWrapper.classList.remove('yt-pip-mode'); // Скидання PiP
+            
             if(m.ytId) {
                 ytWrapper.classList.remove('hidden');
-                // Якщо є відео, робимо скролінг тексту ОБМЕЖЕНИМ по висоті, щоб відео залишалось на екрані
-                contentWrapper.style.maxHeight = "40vh";
                 initYouTubePlayer(m.ytId);
-            } else { 
-                ytWrapper.classList.add('hidden'); 
-                contentWrapper.style.maxHeight = "none";
-            }
+            } else { ytWrapper.classList.add('hidden'); }
             
             renderReaderContent();
+            
+            // PiP логіка на скрол
+            const scrollArea = document.getElementById('reader-content-wrapper');
+            scrollArea.onscroll = () => {
+                if(m.ytId && ytWrapper) {
+                    if (scrollArea.scrollTop > 100) ytWrapper.classList.add('yt-pip-mode');
+                    else ytWrapper.classList.remove('yt-pip-mode');
+                }
+            };
         };
 
         window.closeReader = () => { 
-            document.getElementById('library-read-view').classList.add('hidden'); 
-            document.getElementById('library-list-view').classList.remove('hidden'); 
+            document.getElementById('library-read-view').classList.add('hidden'); document.getElementById('library-list-view').classList.remove('hidden'); 
             if(ytPlayer && typeof ytPlayer.destroy === 'function') { ytPlayer.destroy(); ytPlayer = null; }
-            if(syncInterval) clearInterval(syncInterval);
-            closeInlinePopup(); 
+            if(syncInterval) clearInterval(syncInterval); closeInlinePopup(); 
+            const scrollArea = document.getElementById('reader-content-wrapper'); scrollArea.onscroll = null;
         };
 
         function initYouTubePlayer(videoId) {
-            if (ytPlayer && typeof ytPlayer.destroy === 'function') {
-                ytPlayer.destroy();
-            }
-            if (window.YT && window.YT.Player) {
-                ytPlayer = new YT.Player('reader-yt-player', {
-                    videoId: videoId,
-                    events: { 'onStateChange': onPlayerStateChange }
-                });
-            } else {
-                setTimeout(() => initYouTubePlayer(videoId), 500);
-            }
-        }
-
-        function onPlayerStateChange(event) {
-            if (event.data == YT.PlayerState.PLAYING) {
-                if(!syncInterval) syncInterval = setInterval(syncSubtitles, 250);
-            } else {
-                if(syncInterval) { clearInterval(syncInterval); syncInterval = null; }
-            }
+            if (ytPlayer && typeof ytPlayer.destroy === 'function') ytPlayer.destroy();
+            if (window.YT && window.YT.Player) { ytPlayer = new YT.Player('reader-yt-player', { videoId: videoId, events: { 'onStateChange': (e) => { if (e.data == YT.PlayerState.PLAYING) { if(!syncInterval) syncInterval = setInterval(syncSubtitles, 250); } else { if(syncInterval) { clearInterval(syncInterval); syncInterval = null; } } } } }); } else setTimeout(() => initYouTubePlayer(videoId), 500);
         }
 
         function syncSubtitles() {
-            if(!ytPlayer || !ytPlayer.getCurrentTime) return;
-            const time = ytPlayer.getCurrentTime();
-            const lines = document.querySelectorAll('.yt-sub-line');
+            if(!ytPlayer || !ytPlayer.getCurrentTime) return; const time = ytPlayer.getCurrentTime();
             const container = document.getElementById('reader-content-wrapper');
-            
-            lines.forEach(line => {
-                const start = parseFloat(line.dataset.start);
-                const end = parseFloat(line.dataset.end);
-                if(time >= start && time <= end) {
+            document.querySelectorAll('.yt-sub-line').forEach(line => {
+                if(time >= parseFloat(line.dataset.start) && time <= parseFloat(line.dataset.end)) {
                     if(!line.classList.contains('active-sub')) {
-                        line.classList.add('active-sub');
-                        // Автоскрол всередині контейнера!
-                        container.scrollTo({
-                            top: line.offsetTop - container.offsetTop - (container.clientHeight / 2) + (line.clientHeight / 2),
-                            behavior: 'smooth'
-                        });
+                        line.classList.add('active-sub'); container.scrollTo({ top: line.offsetTop - container.offsetTop - (container.clientHeight / 2) + (line.clientHeight / 2), behavior: 'smooth' });
                     }
-                } else {
-                    line.classList.remove('active-sub');
-                }
+                } else { line.classList.remove('active-sub'); }
             });
         }
-
-        window.seekVideo = (seconds) => {
-            if(ytPlayer && ytPlayer.seekTo) {
-                ytPlayer.seekTo(seconds, true);
-                if(ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) ytPlayer.playVideo();
-            }
-        };
+        window.seekVideo = (seconds) => { if(ytPlayer && ytPlayer.seekTo) { ytPlayer.seekTo(seconds, true); if(ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) ytPlayer.playVideo(); } };
 
         function wrapWords(text, savedWordsMap) {
-            const regex = /([a-zA-Z\'-]+)|([^a-zA-Z\'-]+)/g;
-            let match, html = '';
+            const regex = /([a-zA-Z\'-]+)|([^a-zA-Z\'-]+)/g; let match, html = '';
             while ((match = regex.exec(text)) !== null) {
                 if (match[1]) {
-                    const cleanWord = match[1].toLowerCase();
-                    const css = savedWordsMap.has(cleanWord) ? 'word-clickable word-saved' : 'word-clickable';
+                    const cleanWord = match[1].toLowerCase(); const css = savedWordsMap.has(cleanWord) ? 'word-clickable word-saved' : 'word-clickable';
                     html += `<span class="${css}" data-word="${match[1]}">${match[1]}</span>`;
                 } else if (match[2]) html += match[2];
-            }
-            return html;
+            } return html;
         }
 
         function renderReaderContent() {
-            if(!currentMaterial) return;
-            const container = document.getElementById('reader-content');
-            const savedWordsMap = new Set(vocabulary.map(v => v.word.toLowerCase()));
-
+            if(!currentMaterial) return; const container = document.getElementById('reader-content'); const savedWordsMap = new Set(vocabulary.map(v => v.word.toLowerCase()));
             if (currentMaterial.subtitles) {
                 const subs = JSON.parse(currentMaterial.subtitles);
-                let finalHtml = '';
-                subs.forEach(sub => {
-                    const lineContent = wrapWords(sub.text, savedWordsMap);
-                    finalHtml += `<div class="yt-sub-line" data-start="${sub.start}" data-end="${sub.end}" onclick="seekVideo(${sub.start})">${lineContent}</div>`;
-                });
-                container.innerHTML = finalHtml;
+                container.innerHTML = subs.map(sub => `<div class="yt-sub-line" data-start="${sub.start}" data-end="${sub.end}" onclick="seekVideo(${sub.start})">${wrapWords(sub.text, savedWordsMap)}</div>`).join('');
             } else {
-                const lines = currentMaterial.content.split('\n');
-                let finalHtml = '';
-                lines.forEach(lineText => {
-                    if(!lineText.trim()) return;
-                    // Без таймкодів просто гарний текст (без скролу і підсвітки)
-                    finalHtml += `<div class="mb-4">${wrapWords(lineText, savedWordsMap)}</div>`;
-                });
-                container.innerHTML = finalHtml;
+                container.innerHTML = currentMaterial.content.split('\n').filter(l=>l.trim()).map(lineText => `<div class="mb-4">${wrapWords(lineText, savedWordsMap)}</div>`).join('');
             }
         }
 
-        const inlinePopup = document.getElementById('inline-popup');
-        
+        // Inline Selection
+        let pendingInlineSaveData = null; const inlinePopup = document.getElementById('inline-popup');
         document.getElementById('reader-content').addEventListener('click', (e) => {
             if (e.target.classList.contains('word-clickable') && window.getSelection().toString().trim().length === 0) {
-                e.stopPropagation(); 
-                const word = e.target.getAttribute('data-word'); 
-                const rect = e.target.getBoundingClientRect();
-                inlinePopup.style.top = `${window.scrollY + rect.bottom + 8}px`; 
-                inlinePopup.style.left = `${Math.max(10, rect.left + rect.width/2 - 144)}px`; 
+                e.stopPropagation(); const word = e.target.getAttribute('data-word'); const rect = e.target.getBoundingClientRect();
+                inlinePopup.style.top = `${window.scrollY + rect.bottom + 8}px`; inlinePopup.style.left = `${Math.max(10, rect.left + rect.width/2 - 144)}px`; 
                 processInlineTranslationRequest(word, currentMaterial.content);
             }
         });
-        
         document.addEventListener('click', (e) => { if(!inlinePopup.classList.contains('hidden') && !inlinePopup.contains(e.target) && !e.target.classList.contains('word-clickable')) closeInlinePopup(); });
-        
-        // Виправляємо Enter в попапі
-        document.getElementById('inline-popup-trans-input').addEventListener('keydown', (e) => { 
-            if(e.key === 'Enter') {
-                e.preventDefault();
-                saveWordFromInlinePopup();
-            }
-        });
+        document.getElementById('inline-popup-trans-input').addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); saveWordFromInlinePopup(); } });
 
         async function processInlineTranslationRequest(queryStr, fullText) {
             const query = queryStr.toLowerCase().trim(); inlinePopup.classList.remove('hidden');
             document.getElementById('inline-popup-word').textContent = query; document.getElementById('inline-popup-trans-input').value = '';
             document.getElementById('inline-trans-dropdown').classList.add('hidden'); document.getElementById('inline-popup-loader').classList.remove('hidden'); document.getElementById('inline-popup-save-btn').classList.add('hidden');
             
-            let sentence = ""; 
-            const pureText = currentMaterial.subtitles ? JSON.parse(currentMaterial.subtitles).map(s=>s.text).join(' ') : fullText;
+            let sentence = ""; const pureText = currentMaterial.subtitles ? JSON.parse(currentMaterial.subtitles).map(s=>s.text).join(' ') : fullText;
             const idx = pureText.toLowerCase().indexOf(query);
-            if(idx !== -1) { 
-                const start = Math.max(0, pureText.lastIndexOf('.', idx) + 1); 
-                let end = pureText.indexOf('.', idx); if(end === -1) end = pureText.length; 
-                sentence = pureText.substring(start, end + 1).trim(); 
-            }
+            if(idx !== -1) { const start = Math.max(0, pureText.lastIndexOf('.', idx) + 1); let end = pureText.indexOf('.', idx); if(end === -1) end = pureText.length; sentence = pureText.substring(start, end + 1).trim(); }
 
-            const existing = vocabulary.find(v => v.word.toLowerCase() === query);
-            let transText = '';
-            if (existing) { 
-                transText = existing.translation; document.getElementById('inline-popup-save-btn').textContent = "Оновити (Enter)"; 
-            } else {
+            const existing = vocabulary.find(v => v.word.toLowerCase() === query); let transText = '';
+            if (existing) { transText = existing.translation; document.getElementById('inline-popup-save-btn').textContent = "Оновити (Enter)"; } 
+            else {
                 const options = await fetchTranslationOptions(query); 
-                if(options && options.length>0) {
+                if(options) {
                     transText = options[0].text;
-                    document.getElementById('inline-trans-options-list').innerHTML = options.map(opt => `<li onclick="selectInlineTranslation('${opt.text.replace(/'/g, "\\'")}')" class="p-2 hover:bg-indigo-50 cursor-pointer border-b border-slate-50 flex flex-col justify-center text-sm"><div class="flex justify-between items-center mb-1"><span class="font-bold text-slate-700">${opt.text}</span><span class="text-[9px] font-bold text-slate-400 bg-slate-100 px-1 rounded">${Math.round(Math.max(10, Math.min(100, opt.score * 100)))}%</span></div></li>`).join('');
+                    document.getElementById('inline-trans-options-list').innerHTML = options.map(opt => `<li onclick="selectInlineTranslation('${opt.text.replace(/'/g, "\\'")}')" class="p-2 hover:bg-indigo-50 cursor-pointer border-b border-slate-50 text-sm"><span class="font-bold text-slate-700">${opt.text}</span></li>`).join('');
                     document.getElementById('inline-trans-dropdown').classList.remove('hidden');
                 }
                 document.getElementById('inline-popup-save-btn').textContent = "Зберегти (Enter)";
             }
-            document.getElementById('inline-popup-loader').classList.add('hidden'); document.getElementById('inline-popup-trans-input').value = transText; document.getElementById('inline-popup-save-btn').classList.remove('hidden');
+            document.getElementById('inline-popup-loader').classList.add('hidden'); document.getElementById('inline-popup-trans-input').value = transText.toLowerCase(); document.getElementById('inline-popup-save-btn').classList.remove('hidden');
             pendingInlineSaveData = { word: query, context: sentence }; document.getElementById('inline-popup-trans-input').focus();
         }
 
-        window.selectInlineTranslation = (text) => { document.getElementById('inline-popup-trans-input').value = text; }
+        window.selectInlineTranslation = (text) => { document.getElementById('inline-popup-trans-input').value = text.toLowerCase(); }
         window.closeInlinePopup = () => { inlinePopup.classList.add('hidden'); pendingInlineSaveData = null; };
 
         window.saveWordFromInlinePopup = async () => {
             if(!activeUid || !pendingInlineSaveData) return;
-            const trans = document.getElementById('inline-popup-trans-input').value.trim(); if(!trans) return;
+            const trans = document.getElementById('inline-popup-trans-input').value.trim().toLowerCase(); if(!trans) return;
             const btn = document.getElementById('inline-popup-save-btn'); const orig = btn.textContent; btn.disabled = true; btn.textContent = "...";
             try {
                 const imgUrl = await getImageUrl(pendingInlineSaveData.word);
                 const existing = vocabulary.find(v => v.word.toLowerCase() === pendingInlineSaveData.word);
-                if(existing) await deleteDoc(doc(db, 'users', activeUid, 'words', existing.id));
-                await addDoc(collection(db, 'users', activeUid, 'words'), { word: pendingInlineSaveData.word, translation: trans, context: pendingInlineSaveData.context, imageUrl: imgUrl, source: currentMaterial ? currentMaterial.title : "Читання", createdAt: serverTimestamp() });
-                
-                const words = document.getElementById('reader-content').querySelectorAll(`[data-word="${pendingInlineSaveData.word.toLowerCase()}"]`);
-                words.forEach(w => w.classList.add('word-saved'));
+                if(existing) { await updateDoc(doc(db, 'users', activeUid, 'words', existing.id), { translation: trans, context: pendingInlineSaveData.context }); } 
+                else { await addDoc(collection(db, 'users', activeUid, 'words'), { word: pendingInlineSaveData.word, translation: trans, context: pendingInlineSaveData.context, imageUrl: imgUrl, source: currentMaterial ? currentMaterial.title : "Читання", createdAt: serverTimestamp(), srsLevel: 0, nextReviewTime: Date.now() }); }
+                document.getElementById('reader-content').querySelectorAll(`[data-word="${pendingInlineSaveData.word.toLowerCase()}"]`).forEach(w => w.classList.add('word-saved'));
                 closeInlinePopup();
-            } catch(e) { window.showModal("Не вдалося зберегти."); } finally { btn.disabled = false; btn.textContent = orig; }
+            } catch(e) {} finally { btn.disabled = false; btn.textContent = orig; }
         };
 
-        let bsWords = [], bsCurrentWordIdx = 0, bsCurrentStage = 0, bsTotalSteps = 0, bsCompletedSteps = 0;
-        let activeSessionMode = 'all'; 
-        const MODE_STAGES = { 'all': [0, 1, 2, 3], 'word-trans': [1], 'trans-word': [4], 'constructor': [2], 'typing': [3], 'listening': [5] };
-        const STAGE_NAMES = { 0: "Ознайомлення", 1: "Слово → Переклад", 2: "Конструктор", 3: "Написання", 4: "Переклад → Слово", 5: "Аудіювання" };
+        // --- Training Logic ---
+        function updateTrainFolderSelect() {
+            const select = document.getElementById('train-folder-select');
+            const currentVal = select.value;
+            const sources = [...new Set(vocabulary.map(w => w.source || "Інше"))];
+            select.innerHTML = '<option value="all">Усі матеріали</option>' + sources.map(s => `<option value="${s}">${s}</option>`).join('');
+            if(sources.includes(currentVal)) select.value = currentVal;
+        }
 
-        window.toggleMute = () => {
-            isGlobalAudioMuted = !isGlobalAudioMuted; const btn = document.getElementById('btn-global-mute');
-            btn.textContent = isGlobalAudioMuted ? '🔇' : '🔊'; btn.classList.toggle('bg-slate-300', isGlobalAudioMuted);
-            if(isGlobalAudioMuted) window.speechSynthesis.cancel();
-        };
+        let bsWords = [], bsCurrentWordIdx = 0, bsCurrentStage = 0, bsTotalSteps = 0, bsCompletedSteps = 0, activeSessionMode = 'all'; 
+        const MODE_STAGES = { 'all': [0, 1, 2, 3], 'review': [1, 2, 4], 'word-trans': [1], 'trans-word': [4], 'constructor': [2], 'typing': [3], 'listening': [5], 'context': [6] };
+        const STAGE_NAMES = { 0: "Ознайомлення", 1: "Слово → Переклад", 2: "Конструктор", 3: "Написання", 4: "Переклад → Слово", 5: "Аудіювання", 6: "Контекст" };
+
+        window.toggleMute = () => { isGlobalAudioMuted = !isGlobalAudioMuted; const btn = document.getElementById('btn-global-mute'); btn.textContent = isGlobalAudioMuted ? '🔇' : '🔊'; btn.classList.toggle('bg-slate-300', isGlobalAudioMuted); if(isGlobalAudioMuted) window.speechSynthesis.cancel(); };
 
         window.startSession = (mode) => {
-            const reqCount = parseInt(document.getElementById('bs-word-count').value);
-            if(vocabulary.length === 0) return window.showModal(`Додайте хоча б 1 слово до словника.`);
+            const folder = document.getElementById('train-folder-select').value;
+            let pool = folder === 'all' ? vocabulary : vocabulary.filter(w => (w.source || "Інше") === folder);
             
-            const countToUse = Math.min(vocabulary.length, reqCount);
+            if(mode === 'context') { pool = pool.filter(w => w.context && w.context.trim().length > 5); }
+            if(pool.length === 0) return window.showModal("Для вибраного режиму в цій папці немає підходящих слів.");
+
+            let reqCount = 10; // Окремі вправи завжди 10 слів
+            if (mode === 'all') reqCount = parseInt(document.getElementById('bs-word-count').value);
+
+            if(mode === 'all') { 
+                pool = pool.filter(w => getSrsInfo(w).isReady && (w.srsLevel || 0) < MAX_SRS_LEVEL); 
+            } else if(mode === 'review') { 
+                pool = pool.filter(w => (w.srsLevel || 0) >= MAX_SRS_LEVEL); 
+            } else {
+                // Незалежний прогрес для окремих вправ (інтервали такі ж)
+                pool = pool.filter(w => {
+                    let lvl = w[`srs_${mode}_Level`] || 0;
+                    let nxt = w[`srs_${mode}_NextTime`] || 0;
+                    return lvl < MAX_SRS_LEVEL && Date.now() >= nxt;
+                });
+                // Якщо немає слів, час яких настав, беремо ті, що ще не тренувались в цьому режимі
+                if(pool.length === 0) {
+                    let fallbackPool = folder === 'all' ? vocabulary : vocabulary.filter(w => (w.source || "Інше") === folder);
+                    if(mode === 'context') fallbackPool = fallbackPool.filter(w => w.context && w.context.trim().length > 5);
+                    pool = fallbackPool.filter(w => !(w[`srs_${mode}_Level`]));
+                }
+            }
+            
+            if(pool.length === 0) return window.showModal("Наразі немає слів для повторення в цьому режимі. Зачекайте або додайте нові слова.");
+
             activeSessionMode = mode;
-            bsWords = [...vocabulary].sort(() => 0.5 - Math.random()).slice(0, countToUse);
+            bsWords = pool.sort(() => 0.5 - Math.random()).slice(0, Math.min(pool.length, reqCount));
             bsCurrentWordIdx = 0; 
             
-            const stagesForMode = MODE_STAGES[mode];
-            bsCurrentStage = stagesForMode[0]; 
+            const stagesForMode = MODE_STAGES[mode]; bsCurrentStage = stagesForMode[0]; 
             bsTotalSteps = bsWords.length * stagesForMode.length; bsCompletedSteps = 0;
 
             document.getElementById('train-hub-screen').classList.add('hidden'); document.getElementById('bs-results').classList.add('hidden'); document.getElementById('bs-workspace').classList.remove('hidden');
             updateBsProgress(); renderBsStage();
         };
 
-        window.endSession = () => {
-            document.getElementById('bs-workspace').classList.add('hidden'); document.getElementById('bs-results').classList.add('hidden'); document.getElementById('train-hub-screen').classList.remove('hidden');
-            window.speechSynthesis.cancel(); document.removeEventListener('keydown', handleConstructorKeyboard); document.removeEventListener('keydown', handleGlobalKeyboard);
-        };
-
-        function updateBsProgress() {
-            document.getElementById('bs-progress-bar').style.width = `${(bsCompletedSteps / bsTotalSteps) * 100}%`;
-            document.getElementById('bs-overall-stage').textContent = STAGE_NAMES[bsCurrentStage];
-            document.getElementById('bs-word-counter').textContent = `${bsCurrentWordIdx + 1} / ${bsWords.length}`;
+        window.startContextSession = () => {
+            window.startSession('context');
         }
+
+        window.endSession = () => { document.getElementById('bs-workspace').classList.add('hidden'); document.getElementById('bs-results').classList.add('hidden'); document.getElementById('train-hub-screen').classList.remove('hidden'); window.speechSynthesis.cancel(); document.removeEventListener('keydown', handleConstructorKeyboard); document.removeEventListener('keydown', handleGlobalKeyboard); };
+
+        function updateBsProgress() { document.getElementById('bs-progress-bar').style.width = `${(bsCompletedSteps / bsTotalSteps) * 100}%`; document.getElementById('bs-overall-stage').textContent = STAGE_NAMES[bsCurrentStage]; document.getElementById('bs-word-counter').textContent = `${bsCurrentWordIdx + 1} / ${bsWords.length}`; }
 
         window.nextBrainstormStep = () => {
             bsCompletedSteps++; bsCurrentWordIdx++;
@@ -1097,42 +967,49 @@
             updateBsProgress(); renderBsStage();
         };
 
-        function finishBrainstorm() {
-            document.getElementById('bs-workspace').classList.add('hidden'); document.getElementById('bs-results').classList.remove('hidden');
-            document.getElementById('bs-results-list').innerHTML = bsWords.map(w => `<div class="border-b border-slate-200 pb-2 mb-2 flex justify-between items-center"><span class="capitalize font-bold text-slate-800 text-lg">${w.word}</span><span class="text-indigo-600 font-bold text-sm">${w.translation}</span></div>`).join('');
+        async function finishBrainstorm() {
+            document.getElementById('bs-workspace').classList.add('hidden'); 
+            
+            try {
+                if(activeSessionMode === 'all') { // Основний Брейншторм
+                    for(let w of bsWords) {
+                        let newLevel = Math.min((w.srsLevel || 0) + 1, MAX_SRS_LEVEL);
+                        await updateDoc(doc(db, 'users', activeUid, 'words', w.id), { srsLevel: newLevel, nextReviewTime: Date.now() + SRS_INTERVALS[newLevel] });
+                    }
+                } else if (activeSessionMode !== 'review') { // Окремі вправи (свій незалежний SRS)
+                    for(let w of bsWords) {
+                        let newLevel = Math.min((w[`srs_${activeSessionMode}_Level`] || 0) + 1, MAX_SRS_LEVEL);
+                        await updateDoc(doc(db, 'users', activeUid, 'words', w.id), { 
+                            [`srs_${activeSessionMode}_Level`]: newLevel, 
+                            [`srs_${activeSessionMode}_NextTime`]: Date.now() + SRS_INTERVALS[newLevel] 
+                        });
+                    }
+                }
+            } catch(e) { console.error(e); }
+
+            document.getElementById('bs-results').classList.remove('hidden');
+            document.getElementById('bs-results-list').innerHTML = bsWords.map(w => `<div class="border-b border-slate-200 pb-2 mb-2 flex justify-between items-center"><span class="font-bold text-slate-800 text-lg lowercase">${w.word}</span><span class="text-indigo-600 font-bold text-sm lowercase">${w.translation}</span></div>`).join('');
         }
 
         function handleGlobalKeyboard(e) {
             const btnNext = document.getElementById('bs-btn-next');
-            if(e.key === 'Enter' && !btnNext.classList.contains('hidden')) { 
-                e.preventDefault(); e.stopPropagation(); btnNext.click(); return; 
-            }
-            
-            // Швидкий вибір (1, 2, 3, 4)
-            if (['1', '2', '3', '4'].includes(e.key)) {
-                if (bsCurrentStage === 1 || bsCurrentStage === 4) {
-                    const idx = parseInt(e.key) - 1;
-                    const buttons = document.querySelectorAll('#bs-test-opts button');
-                    if(buttons[idx] && !buttons[idx].disabled) buttons[idx].click();
-                }
+            if(e.key === 'Enter' && !btnNext.classList.contains('hidden')) { e.preventDefault(); e.stopPropagation(); btnNext.click(); return; }
+            if (['1', '2', '3', '4'].includes(e.key) && (bsCurrentStage === 1 || bsCurrentStage === 4)) {
+                const buttons = document.querySelectorAll('#bs-test-opts button'); if(buttons[parseInt(e.key)-1] && !buttons[parseInt(e.key)-1].disabled) buttons[parseInt(e.key)-1].click();
             }
         }
 
         function triggerSuccessReveal(word) {
-            const reveal = document.getElementById('bs-success-reveal');
             document.getElementById('bs-success-img').src = word.imageUrl; document.getElementById('bs-success-word').textContent = word.word;
             const ctxEl = document.getElementById('bs-success-context');
             if(word.context) { ctxEl.innerHTML = `"${word.context.replace(new RegExp(`(${word.word})`, 'gi'), '<b class="text-indigo-600">$1</b>')}"`; } else { ctxEl.textContent = ""; }
-            reveal.classList.remove('hidden'); if(!isGlobalAudioMuted) playAudioWord(word.word);
+            document.getElementById('bs-success-reveal').classList.remove('hidden'); if(!isGlobalAudioMuted) playAudioWord(word.word);
             document.getElementById('bs-btn-next').classList.remove('hidden');
         }
 
         function renderBsStage() {
-            const word = bsWords[bsCurrentWordIdx]; const area = document.getElementById('bs-interactive-area');
-            const btnNext = document.getElementById('bs-btn-next'), feedback = document.getElementById('bs-feedback');
-            
-            feedback.innerHTML = ''; btnNext.classList.add('hidden'); area.innerHTML = '';
-            document.getElementById('bs-success-reveal').classList.add('hidden');
+            const word = bsWords[bsCurrentWordIdx]; const area = document.getElementById('bs-interactive-area'); const btnNext = document.getElementById('bs-btn-next'), feedback = document.getElementById('bs-feedback');
+            feedback.innerHTML = ''; btnNext.classList.add('hidden'); area.innerHTML = ''; document.getElementById('bs-success-reveal').classList.add('hidden');
             document.removeEventListener('keydown', handleConstructorKeyboard); document.removeEventListener('keydown', handleGlobalKeyboard); document.addEventListener('keydown', handleGlobalKeyboard);
 
             if (bsCurrentStage === 0) renderStageIntro(word, area, btnNext);
@@ -1141,6 +1018,8 @@
             if (bsCurrentStage === 2) renderStageConstructor(word, area, btnNext, feedback);
             if (bsCurrentStage === 3) renderStageTyping(word, area, btnNext, feedback, false); 
             if (bsCurrentStage === 5) renderStageTyping(word, area, btnNext, feedback, true);  
+            if (bsCurrentStage === 6) renderStageContext(word, area, btnNext, feedback);
+
             if((bsCurrentStage === 0 || bsCurrentStage === 5) && !isGlobalAudioMuted) playAudioWord(word.word);
         }
 
@@ -1149,25 +1028,25 @@
         function renderStageIntro(word, area, btnNext) {
             area.innerHTML = `
                 <div class="mx-auto w-40 h-40 rounded-xl overflow-hidden shadow-sm mb-4"><img src="${word.imageUrl}" class="w-full h-full object-cover" onerror="imgError(this)"></div>
-                <h3 class="text-3xl font-bold text-slate-800 capitalize mb-1 tracking-tight">${word.word}</h3><p class="text-xl text-indigo-600 font-bold mb-2">${word.translation}</p>
-                ${word.context ? `<p class="text-sm text-slate-500 italic max-w-sm mx-auto mb-4">"${word.context}"</p>` : ''}
+                <h3 class="text-3xl font-bold text-slate-800 lowercase mb-1 tracking-tight">${word.word}</h3><p class="text-xl text-indigo-600 font-bold mb-2 lowercase">${word.translation}</p>
                 <button id="btn-intro-audio" class="mx-auto bg-slate-100 p-4 rounded-full hover:bg-slate-200 transition shadow-sm border border-slate-200"><svg class="w-7 h-7 text-indigo-600" fill="currentColor" viewBox="0 0 24 24"><path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75 0 010-1.06z"/></svg></button>
             `;
             document.getElementById('btn-intro-audio').onclick = () => playAudioWord(word.word); btnNext.textContent = "Зрозуміло (Enter)"; btnNext.classList.remove('hidden');
         }
 
         function getOptions(correctWord) {
+            // ФІКС 5 пункту: гарантовано беремо 3 інші слова, а потім додаємо 1 правильне
             let filler = vocabulary.filter(v => v.id !== correctWord.id).sort(() => 0.5 - Math.random());
-            let opts = [correctWord, ...filler].slice(0, 3); // Беремо максимум 3 інших, якщо є
-            opts.push(correctWord); // Гарантовано додаємо правильне
+            let opts = filler.slice(0, 3);
+            opts.push(correctWord); 
             return opts.sort(() => 0.5 - Math.random());
         }
 
         function renderStageTestWT(word, area, btnNext, feedback) {
             const opts = getOptions(word);
-            area.innerHTML = `<h3 class="text-3xl font-bold text-slate-800 capitalize mb-8 tracking-tight">${word.word}</h3>
+            area.innerHTML = `<h3 class="text-3xl font-bold text-slate-800 lowercase mb-8 tracking-tight">${word.word}</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="bs-test-opts">
-                    ${opts.map((o, idx) => `<button data-id="${o.id}" class="p-4 border-2 border-slate-200 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition active:scale-95 text-base sm:text-lg shadow-sm flex justify-between items-center"><span>${o.translation}</span><span class="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded shadow-inner">[${idx+1}]</span></button>`).join('')}
+                    ${opts.map((o, idx) => `<button data-id="${o.id}" class="p-4 border-2 border-slate-200 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition active:scale-95 text-base sm:text-lg shadow-sm flex justify-between items-center lowercase"><span>${o.translation}</span><span class="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded shadow-inner">[${idx+1}]</span></button>`).join('')}
                 </div>`;
             bindTestButtons(word, feedback);
         }
@@ -1176,7 +1055,7 @@
             const opts = getOptions(word);
             area.innerHTML = `<h3 class="text-2xl font-bold text-indigo-700 uppercase mb-8 tracking-wider">${word.translation}</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="bs-test-opts">
-                    ${opts.map((o, idx) => `<button data-id="${o.id}" class="p-4 border-2 border-slate-200 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition active:scale-95 text-xl shadow-sm capitalize flex justify-between items-center"><span>${o.word}</span><span class="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded shadow-inner">[${idx+1}]</span></button>`).join('')}
+                    ${opts.map((o, idx) => `<button data-id="${o.id}" class="p-4 border-2 border-slate-200 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition active:scale-95 text-xl shadow-sm lowercase flex justify-between items-center"><span>${o.word}</span><span class="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded shadow-inner">[${idx+1}]</span></button>`).join('')}
                 </div>`;
             bindTestButtons(word, feedback);
         }
@@ -1191,7 +1070,37 @@
                     } else {
                         b.classList.replace('border-slate-200', 'border-rose-500'); b.classList.add('bg-rose-50', 'text-rose-700');
                         document.querySelector(`#bs-test-opts button[data-id="${word.id}"]`).classList.add('bg-emerald-50', 'border-emerald-500');
-                        feedback.innerHTML = '<span class="text-rose-500 font-bold">Запам\'ятайте відповідь.</span>'; triggerSuccessReveal(word); 
+                        feedback.innerHTML = `<span class="text-emerald-600 font-bold text-base bg-emerald-50 px-3 py-1 rounded border border-emerald-100">Правильно: ${word.word}</span>`; triggerSuccessReveal(word); 
+                    }
+                }
+            });
+        }
+
+        function renderStageContext(word, area, btnNext, feedback) {
+            const inputHtml = `<input type="text" id="bs-type-input" class="inline-input-context" autocomplete="off" placeholder="...">`;
+            const regex = new RegExp(`\\b${word.word}\\b`, 'gi');
+            let blankedContext = word.context.replace(regex, inputHtml);
+            if(blankedContext === word.context) blankedContext = word.context.replace(new RegExp(word.word, 'gi'), inputHtml);
+            
+            area.innerHTML = `
+                <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Переклад: ${word.translation}</p>
+                <div class="bg-indigo-50/50 p-6 sm:p-8 rounded-2xl border border-indigo-100 mb-6">
+                    <p class="text-lg md:text-xl font-serif text-slate-800 leading-relaxed italic" style="line-height: 2.2;">"${blankedContext}"</p>
+                </div>
+            `;
+            
+            const inp = document.getElementById('bs-type-input'); setTimeout(()=>inp.focus(), 50); 
+            
+            inp.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter') {
+                    e.preventDefault(); e.stopPropagation(); if(inp.disabled) return; 
+                    const userVal = inp.value.trim().toLowerCase();
+                    if(userVal === word.word.toLowerCase()) {
+                        inp.style.borderBottomColor = '#10b981'; inp.style.color = '#047857'; inp.style.backgroundColor = '#d1fae5'; inp.disabled = true;
+                        feedback.innerHTML = '<span class="text-emerald-600 font-bold">Правильно! 🏆</span>'; triggerSuccessReveal(word);
+                    } else {
+                        inp.style.borderBottomColor = '#f43f5e'; inp.style.color = '#be123c'; inp.style.backgroundColor = '#ffe4e6'; inp.disabled = true;
+                        feedback.innerHTML = `<span class="text-emerald-600 font-bold text-base bg-emerald-50 px-3 py-1 rounded border border-emerald-100">Правильно: ${word.word}</span>`; triggerSuccessReveal(word);
                     }
                 }
             });
@@ -1206,11 +1115,7 @@
 
         function renderStageConstructor(word, area, btnNext, feedback) {
             expectedWordStr = word.word.replace(/\s+/g, '').toLowerCase(); bsLetterPool = expectedWordStr.split('').map((char, i) => ({ id: i, char })).sort(() => 0.5 - Math.random()); bsSelectedLetters = [];
-            area.innerHTML = `
-                <p class="text-xl text-indigo-600 font-bold mb-6 uppercase tracking-wider">${word.translation}</p>
-                <div id="bs-c-slots" class="flex flex-wrap justify-center gap-1.5 sm:gap-2.5 mb-8 min-h-[3.5rem]"></div>
-                <div id="bs-c-pool" class="flex flex-wrap justify-center gap-2.5 min-h-[3.5rem]"></div>
-            `;
+            area.innerHTML = `<p class="text-xl text-indigo-600 font-bold mb-6 uppercase tracking-wider">${word.translation}</p><div id="bs-c-slots" class="flex flex-wrap justify-center gap-1.5 sm:gap-2.5 mb-8 min-h-[3.5rem]"></div><div id="bs-c-pool" class="flex flex-wrap justify-center gap-2.5 min-h-[3.5rem]"></div>`;
             document.addEventListener('keydown', handleConstructorKeyboard);
             window._renderBsC = () => {
                 const slots = document.getElementById('bs-c-slots'), pool = document.getElementById('bs-c-pool'); slots.innerHTML = ''; pool.innerHTML = '';
@@ -1220,8 +1125,7 @@
                     slots.appendChild(el);
                 }
                 bsLetterPool.forEach((item, idx) => {
-                    const btn = document.createElement('button'); btn.className = 'w-12 h-14 bg-white border-2 border-slate-200 rounded-xl shadow-sm text-2xl font-bold uppercase text-slate-700 hover:border-indigo-400 hover:text-indigo-600 letter-tile';
-                    btn.textContent = item.char; btn.onclick = () => { bsSelectedLetters.push(bsLetterPool.splice(idx, 1)[0]); _renderBsC(); }; pool.appendChild(btn);
+                    const btn = document.createElement('button'); btn.className = 'w-12 h-14 bg-white border-2 border-slate-200 rounded-xl shadow-sm text-2xl font-bold uppercase text-slate-700 hover:border-indigo-400 hover:text-indigo-600 letter-tile'; btn.textContent = item.char; btn.onclick = () => { bsSelectedLetters.push(bsLetterPool.splice(idx, 1)[0]); _renderBsC(); }; pool.appendChild(btn);
                 });
                 if(bsLetterPool.length === 0) {
                     if(bsSelectedLetters.map(x=>x.char).join('') === expectedWordStr) {
@@ -1229,43 +1133,24 @@
                         document.removeEventListener('keydown', handleConstructorKeyboard); triggerSuccessReveal(word);
                     } else { slots.classList.add('animate-pulse'); setTimeout(() => slots.classList.remove('animate-pulse'), 500); }
                 } else { feedback.innerHTML = ''; btnNext.classList.add('hidden'); }
-            };
-            _renderBsC();
+            }; _renderBsC();
         }
 
         function renderStageTyping(word, area, btnNext, feedback, isAudioMode) {
-            const promptHTML = isAudioMode 
-                ? `<button onclick="playAudioWord('${word.word.replace(/'/g, "\\'")}')" class="mx-auto bg-indigo-100 p-5 rounded-full text-indigo-700 mb-6 hover:bg-indigo-200 hover:scale-105 transition"><svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75 0 010-1.06z"/></svg></button>`
-                : `<p class="text-2xl text-indigo-700 font-bold mb-6 uppercase tracking-wider">${word.translation}</p>`;
-            area.innerHTML = `
-                ${promptHTML}
-                <div class="flex flex-col items-center justify-center gap-3 w-full max-w-sm mx-auto relative">
-                    <input type="text" id="bs-type-input" class="w-full p-4 text-center text-3xl font-bold border-2 border-slate-300 rounded-2xl focus:border-indigo-500 outline-none transition-colors" autocomplete="off" placeholder="Англійською (Enter)">
-                    <div id="bs-type-error-box" class="w-full hidden mt-2 text-left bg-slate-50 border border-slate-200 p-3 rounded-xl shadow-sm">
-                         <div class="mb-1"><span class="text-xs font-bold text-rose-500 uppercase tracking-wider">Ваша відповідь:</span> <span id="bs-user-ans" class="font-bold text-slate-800 ml-1"></span></div>
-                         <div><span class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Правильно:</span> <span id="bs-correct-ans" class="font-bold text-emerald-700 ml-1 text-lg"></span></div>
-                    </div>
-                </div>
-            `;
-            const inp = document.getElementById('bs-type-input'); 
-            setTimeout(()=>inp.focus(), 50); 
+            const promptHTML = isAudioMode ? `<button onclick="playAudioWord('${word.word.replace(/'/g, "\\'")}')" class="mx-auto bg-indigo-100 p-5 rounded-full text-indigo-700 mb-6 hover:bg-indigo-200 hover:scale-105 transition"><svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75 0 010-1.06z"/></svg></button>` : `<p class="text-2xl text-indigo-700 font-bold mb-6 uppercase tracking-wider">${word.translation}</p>`;
+            area.innerHTML = `${promptHTML}<div class="flex flex-col items-center justify-center gap-3 w-full max-w-sm mx-auto relative"><input type="text" id="bs-type-input" class="w-full p-4 text-center text-3xl font-bold border-2 border-slate-300 rounded-2xl focus:border-indigo-500 outline-none transition-colors lowercase" autocomplete="off" placeholder="Англійською (Enter)"></div>`;
+            const inp = document.getElementById('bs-type-input'); setTimeout(()=>inp.focus(), 50); 
             
-            // Фікс конфлікту клавіш при вводі
             inp.addEventListener('keydown', (e) => {
                 if(e.key === 'Enter') {
-                    e.preventDefault(); 
-                    e.stopPropagation(); // Не пускаємо івент до глобального "Далі"
-                    if(inp.disabled) return; 
-                    
+                    e.preventDefault(); e.stopPropagation(); if(inp.disabled) return; 
                     const userVal = inp.value.trim().toLowerCase();
                     if(userVal === word.word.toLowerCase()) {
                         inp.classList.replace('border-slate-300', 'border-emerald-500'); inp.classList.add('bg-emerald-50', 'text-emerald-700'); inp.disabled = true;
                         feedback.innerHTML = '<span class="text-emerald-600 font-bold">Супер! 🏆</span>'; triggerSuccessReveal(word);
                     } else {
                         inp.classList.replace('border-slate-300', 'border-rose-400'); inp.classList.add('text-rose-500', 'bg-rose-50'); inp.disabled = true;
-                        document.getElementById('bs-user-ans').textContent = userVal || "(порожньо)"; document.getElementById('bs-correct-ans').textContent = word.word;
-                        document.getElementById('bs-type-error-box').classList.remove('hidden');
-                        feedback.innerHTML = '<span class="text-rose-500 text-sm font-bold uppercase">Помилка</span>'; triggerSuccessReveal(word);
+                        feedback.innerHTML = `<span class="text-emerald-600 font-bold text-base bg-emerald-50 px-3 py-1 rounded border border-emerald-100">Правильно: ${word.word}</span>`; triggerSuccessReveal(word);
                     }
                 }
             });
@@ -1275,6 +1160,7 @@
             ['dictionary', 'library', 'training'].forEach(t => { document.getElementById(`view-${t}`).classList.add('hidden'); document.getElementById(`tab-${t}`).className = 'flex-1 py-3.5 text-slate-500 hover:text-indigo-500 transition-colors border-b-[3px] border-transparent'; });
             document.getElementById(`view-${tab}`).classList.remove('hidden'); document.getElementById(`tab-${tab}`).className = 'flex-1 py-3.5 text-indigo-600 border-b-[3px] border-indigo-600 transition-colors font-bold';
             if(tab !== 'library') closeReader(); if(tab !== 'training') endSession();
+            if(tab === 'dictionary') { currentDictFolder = null; renderDictionary(); }
         };
     </script>
 </body>
