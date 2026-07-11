@@ -527,15 +527,14 @@
 
         const data = await res.json();
 
-        if (!Array.isArray(data) || data.length === 0) {
+        if (!data.data?.translations?.length) {
             return null;
         }
 
-        return data.map(item => ({
-            text: item.text.toLowerCase(),
-            score: item.score || 1,
-            pos: item.pos || ""
-        }));
+        return [{
+            text: data.data.translations[0].translatedText.toLowerCase(),
+            score: 1
+        }];
 
     } catch (e) {
         console.error(e);
