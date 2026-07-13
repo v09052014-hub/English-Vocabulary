@@ -71,6 +71,16 @@
         .inline-context-input:focus { border-bottom-color: #4f46e5; width: 140px; }
         .inline-context-input.correct { border-bottom-color: #10b981; color: #10b981; }
         .inline-context-input.wrong { border-bottom-color: #f43f5e; color: #f43f5e; }
+
+        /* Crossword Column Layout Styles */
+        .grid-cols-15 { grid-template-columns: repeat(15, minmax(0, 1fr)); }
+
+        @keyframes cw-shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .animate-shake { animation: cw-shake 0.2s ease-in-out; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased font-sans">
@@ -110,9 +120,12 @@
             </div>
             
             <div class="mb-4 border-t border-slate-100 pt-3">
-                <div class="flex justify-between items-center mb-2">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
                     <label class="text-xs font-bold text-slate-500 uppercase">Зображення</label>
-                    <button type="button" onclick="searchEditImages()" class="text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-2 py-1 rounded font-bold transition shadow-sm border border-indigo-100 z-10 relative">Шукати інші</button>
+                    <div class="flex gap-1.5 w-full sm:w-auto">
+                        <input type="text" id="edit-img-query" placeholder="Інше слово для пошуку..." class="text-xs p-1.5 border border-slate-300 rounded-lg outline-none focus:border-indigo-500 w-full sm:w-44 font-medium">
+                        <button type="button" onclick="searchEditImages()" class="text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg font-bold transition shadow-sm border border-indigo-100 shrink-0 relative z-10">Шукати</button>
+                    </div>
                 </div>
                 <img id="edit-word-img-preview" class="w-full h-28 rounded-xl object-cover mb-2 hidden bg-slate-100 shadow-inner" onerror="imgError(this)">
                 <div id="edit-img-options" class="grid grid-cols-4 gap-2 hidden mb-2"></div>
@@ -210,7 +223,7 @@
         </div>
     </nav>
 
-    <main class="max-w-3xl mx-auto px-4 pt-3 sm:pt-5">
+    <main class="max-w-3xl mx-auto px-4 pt-3 sm:pt-5 transition-all duration-300">
         
         <!-- ================= СЛОВНИК ================= -->
         <section id="view-dictionary" class="fade-in block">
@@ -284,7 +297,7 @@
                     <textarea id="material-content" rows="8" class="w-full p-4 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-base mb-4 resize-none leading-relaxed custom-scroll" placeholder="Оригінальний текст (або скрипт відео)..."></textarea>
                 </div>
 
-                <!-- Tab: URL (Jina AI Parser) -->
+                <!-- Tab: URL -->
                 <div id="mode-url-area" class="hidden">
                     <div class="flex gap-2 mb-4">
                         <input type="url" id="material-url" placeholder="https://..." class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm">
@@ -293,7 +306,7 @@
                     <p class="text-xs text-slate-500 mb-4">Розумний екстрактор витягне чистий текст статті, відкинувши меню та рекламу.</p>
                 </div>
 
-                <!-- Tab: YouTube (Drag and Drop Area) -->
+                <!-- Tab: YouTube -->
                 <div id="mode-yt-area" class="hidden mb-4">
                     <div class="flex gap-2 mb-3">
                         <input type="url" id="material-yt-url" placeholder="Посилання на YouTube" class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm">
@@ -341,7 +354,6 @@
 
         <!-- ================= ТРЕНУВАННЯ ================= -->
         <section id="view-training" class="fade-in hidden">
-            
             <div id="train-hub-screen" class="block mt-4">
                 <div class="flex justify-between items-center mb-6 px-1">
                     <h2 class="text-2xl font-bold text-slate-800">Тренування</h2>
@@ -404,6 +416,14 @@
                         <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">🧩📄</div>
                         <h4 class="font-bold text-slate-700 text-sm">Контекст</h4>
                     </button>
+                    <button onclick="startSession('crossword')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-indigo-400 transition text-center flex flex-col items-center justify-center aspect-square group">
+                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">🧩✍️</div>
+                        <h4 class="font-bold text-slate-700 text-sm">Кросворд</h4>
+                    </button>
+                    <button onclick="startSession('sprint')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-amber-400 transition text-center flex flex-col items-center justify-center aspect-square group">
+                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">⚡🏃‍♂️</div>
+                        <h4 class="font-bold text-slate-700 text-sm">Спринт</h4>
+                    </button>
                 </div>
             </div>
 
@@ -419,27 +439,35 @@
                     <div id="bs-progress-bar" class="bg-indigo-500 h-full rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
                 </div>
 
-                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100 text-center relative overflow-hidden flex flex-col min-h-[300px]">
-                    <div id="bs-interactive-area" class="flex-1 flex flex-col justify-center relative z-10 w-full"></div>
+                <div id="bs-workspace-layout" class="flex flex-col lg:flex-row gap-6 items-start justify-center w-full">
                     
-                    <div id="bs-feedback" class="mt-2 min-h-[28px] flex items-center justify-center font-bold text-lg relative z-10"></div>
-                    
-                    <!-- Buttons placed right under interaction/feedback -->
-                    <div class="mt-3 flex gap-3 relative z-10 w-full">
-                        <button id="bs-btn-dont-know" onclick="markWordAsFailed()" class="flex-shrink-0 bg-slate-100 text-slate-500 hover:bg-slate-200 py-3 px-4 rounded-xl font-bold text-sm transition border border-slate-200 shadow-sm hidden">Не знаю<br>слово</button>
-                        <button id="bs-btn-next" onclick="nextBrainstormStep()" class="flex-1 bg-slate-800 text-white py-3 rounded-xl font-bold text-lg hidden active:scale-95 shadow-md transition">Далі (Enter)</button>
-                    </div>
+                    <!-- Original Active Workspace Box -->
+                    <div id="bs-main-card" class="bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100 text-center relative overflow-hidden flex flex-col min-h-[300px] w-full">
+                        <div id="bs-interactive-area" class="flex-1 flex flex-col justify-center relative z-10 w-full"></div>
+                        
+                        <div id="bs-feedback" class="mt-2 min-h-[28px] flex items-center justify-center font-bold text-lg relative z-10"></div>
+                        
+                        <!-- Buttons placed right under interaction/feedback -->
+                        <div class="mt-3 flex gap-3 relative z-10 w-full">
+                            <button id="bs-btn-dont-know" onclick="markWordAsFailed()" class="flex-shrink-0 bg-slate-100 text-slate-500 hover:bg-slate-200 py-3 px-4 rounded-xl font-bold text-sm transition border border-slate-200 shadow-sm hidden">Не знаю<br>слово</button>
+                            <button id="bs-btn-next" onclick="nextBrainstormStep()" class="flex-1 bg-slate-800 text-white py-3 rounded-xl font-bold text-lg hidden active:scale-95 shadow-md transition">Далі (Enter)</button>
+                        </div>
 
-                    <!-- Image and context appear AT THE BOTTOM -->
-                    <div id="bs-success-reveal" class="hidden mt-4 bg-indigo-50/50 p-3 rounded-xl flex flex-col sm:flex-row items-center gap-3 text-left border border-indigo-100 fade-in z-10">
-                        <img id="bs-success-img" class="w-16 h-16 rounded-lg object-cover shadow-sm bg-slate-200 flex-shrink-0 mx-auto sm:mx-0">
-                        <div class="text-center sm:text-left w-full">
-                            <h4 class="font-bold text-indigo-800 text-lg mb-0 leading-tight" id="bs-success-word"></h4>
-                            <p class="text-sm font-bold text-indigo-600 mb-1" id="bs-success-trans"></p>
-                            <p class="text-sm text-slate-600 font-medium" id="bs-success-context"></p>
+                        <!-- Image and context appear AT THE BOTTOM -->
+                        <div id="bs-success-reveal" class="hidden mt-4 bg-indigo-50/50 p-3 rounded-xl flex flex-col sm:flex-row items-center gap-3 text-left border border-indigo-100 fade-in z-10">
+                            <img id="bs-success-img" class="w-16 h-16 rounded-lg object-cover shadow-sm bg-slate-200 flex-shrink-0 mx-auto sm:mx-0">
+                            <div class="text-center sm:text-left w-full">
+                                <h4 class="font-bold text-indigo-800 text-lg mb-0 leading-tight" id="bs-success-word"></h4>
+                                <p class="text-sm font-bold text-indigo-600 mb-1" id="bs-success-trans"></p>
+                                <p class="text-sm text-slate-600 font-medium" id="bs-success-context"></p>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- External Container for Clues (Sits beautifully on the slate gray background) -->
+                    <div id="bs-external-clues" class="w-full lg:w-5/12 hidden transition-all"></div>
                 </div>
+
                 <button onclick="endSession()" class="mt-6 text-sm text-slate-400 font-bold w-full text-center hover:text-slate-600 transition">× Перервати тренування</button>
             </div>
 
@@ -454,7 +482,6 @@
     </main>
 
     <!-- Inline Popup -->
-    <!-- ЗМІНЕНО: Прибрано transform -translate-x-1/2 та додано max-w-[90vw] -->
     <div id="inline-popup" class="hidden absolute z-[100] bg-white rounded-xl shadow-2xl border border-slate-200 p-4 w-72 max-w-[90vw] transition-opacity">
         <div class="flex justify-between items-start mb-2">
             <strong id="inline-popup-word" class="text-lg text-indigo-700 font-bold break-words pr-2"></strong>
@@ -471,6 +498,15 @@
         <button onclick="saveWordFromInlinePopup()" id="inline-popup-save-btn" class="w-full bg-emerald-500 text-white py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-emerald-600 active:scale-95 transition hidden">
             Зберегти (Enter)
         </button>
+
+        <!-- Collapsible English Dictionary Section -->
+        <div id="inline-dict-section" class="mt-2 pt-2 border-t border-slate-100 hidden">
+            <button onclick="toggleInlineDict()" class="w-full flex justify-between items-center text-xs font-bold text-slate-500 hover:text-indigo-600 transition outline-none">
+                <span class="flex items-center gap-1">📖 Англійське тлумачення</span>
+                <span id="inline-dict-arrow">▼</span>
+            </button>
+            <div id="inline-dict-content" class="hidden mt-2 text-xs text-slate-600 max-h-40 overflow-y-auto custom-scroll space-y-1.5 text-left"></div>
+        </div>
     </div>
 
     <!-- Info Status Modal -->
@@ -493,7 +529,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ТВОЇ КЛЮЧІ
         const firebaseConfig = {
             apiKey: "AIzaSyARJpUlEfJ53Q1a9qd9fyYC6gmHY58AKfI",
             authDomain: "my-english-vocab-training.firebaseapp.com",
@@ -510,7 +545,6 @@
         const MAX_SRS_LEVEL = 4;
         const SRS_INTERVALS = [0, 3 * 3600000, 12 * 3600000, 24 * 3600000, 72 * 3600000];
 
-        // ЗМІНЕНО: Ініціалізуємо звук завершення тренування
         const sessionEndAudio = new Audio("https://files.catbox.moe/lkmm5l.mp3");
 
         let app, auth, db;
@@ -521,6 +555,13 @@
 
         let currentDictFilter = 'all'; 
         let specificMaterialName = '';
+
+        let sprintTimer = null;
+        let sprintTimeLeft = 60;
+        let sprintScore = 0;
+        let sprintStreak = 0;
+        let sprintWordsStats = {};
+        let currentSprintQ = null;
 
         window.showModal = (text, confirmMode = false, onConfirm = null) => {
             document.getElementById('custom-modal').classList.remove('hidden');
@@ -667,6 +708,7 @@
             const word = vocabulary.find(v => v.id === id); if(!word) return;
             document.getElementById('edit-word-id').value = id; document.getElementById('edit-word-en').value = word.word;
             document.getElementById('edit-word-uk').value = word.translation; document.getElementById('edit-word-ctx').value = word.context || '';
+            document.getElementById('edit-img-query').value = ''; 
             
             const imgPreview = document.getElementById('edit-word-img-preview');
             document.getElementById('edit-word-new-imgUrl').value = word.imageUrl || '';
@@ -679,7 +721,9 @@
         window.closeEditModal = () => document.getElementById('edit-word-modal').classList.add('hidden');
         
         window.searchEditImages = async () => {
-            const word = document.getElementById('edit-word-en').value.trim();
+            const defaultWord = document.getElementById('edit-word-en').value.trim();
+            const customQuery = document.getElementById('edit-img-query').value.trim();
+            const word = customQuery || defaultWord;
             const status = document.getElementById('edit-img-status');
             const optionsContainer = document.getElementById('edit-img-options');
             if(!word) return;
@@ -856,7 +900,6 @@
                         let p1 = parts[1];
                         let isContext = false;
                         
-                        // Розумна перевірка на контекст: лапки, велика літера на початку речення (>=3 слів), або просто довга фраза (>5 слів)
                         if(p1.startsWith('"') || p1.startsWith('«') || p1.startsWith("'")) {
                             isContext = true;
                         } else if (p1.length > 0 && p1[0] === p1[0].toUpperCase() && p1.split(' ').length >= 3) {
@@ -946,7 +989,7 @@
         window.fetchArticleText = async (e) => {
             const url = document.getElementById('material-url').value.trim(); if(!url) return;
             const btn = e ? e.currentTarget : document.querySelector('#mode-url-area button');
-            const originalBtnText = btn ? btn.textContent : 'Витягнути текст';
+            const originalBtnText = btn ? btn.textContent : 'Витягнути text';
             if (btn) btn.textContent = 'Обробка...';
             
             try {
@@ -1140,13 +1183,49 @@
         }
 
         function renderReaderContent() {
-            if(!currentMaterial) return; const container = document.getElementById('reader-content'); const savedWordsMap = new Set(vocabulary.map(v => v.word.toLowerCase()));
+            if(!currentMaterial) return; 
+            const container = document.getElementById('reader-content'); 
+            const savedWordsMap = new Set(vocabulary.map(v => v.word.toLowerCase()));
+            
             if (currentMaterial.subtitles) {
-                const subs = JSON.parse(currentMaterial.subtitles); let finalHtml = '';
-                subs.forEach(sub => finalHtml += `<span class="yt-sub-line" data-start="${sub.start}" data-end="${sub.end}" onclick="seekVideo(${sub.start})">${wrapWords(sub.text, savedWordsMap)}</span> `);
-                container.innerHTML = `<div class="leading-[2.2] text-justify">${finalHtml}</div>`;
+                const subs = JSON.parse(currentMaterial.subtitles); 
+                let finalHtml = '';
+                let paragraphTemp = '';
+                let linesInPara = 0;
+                
+                subs.forEach((sub, i) => {
+                    paragraphTemp += `<span class="yt-sub-line" data-start="${sub.start}" data-end="${sub.end}" onclick="seekVideo(${sub.start})">${wrapWords(sub.text, savedWordsMap)}</span> `;
+                    linesInPara++;
+                    
+                    const isLast = i === subs.length - 1;
+                    if (isLast) {
+                        finalHtml += `<p class="mb-6 leading-[2.2] text-justify">${paragraphTemp}</p>`;
+                        return;
+                    }
+
+                    const currentText = sub.text.trim();
+                    const endsWithSentence = /[.!?]['"»”]*$/.test(currentText);
+
+                    const nextSub = subs[i + 1];
+                    const nextText = nextSub ? nextSub.text.trim() : '';
+                    const startsWithCapital = /^[A-Z"'«“]/.test(nextText);
+
+                    if (linesInPara >= 6 && endsWithSentence && startsWithCapital) {
+                        finalHtml += `<p class="mb-6 leading-[2.2] text-justify">${paragraphTemp}</p>`;
+                        paragraphTemp = '';
+                        linesInPara = 0;
+                    } else if (linesInPara >= 12) {
+                        if (endsWithSentence) {
+                            finalHtml += `<p class="mb-6 leading-[2.2] text-justify">${paragraphTemp}</p>`;
+                            paragraphTemp = '';
+                            linesInPara = 0;
+                        }
+                    }
+                });
+                container.innerHTML = `<div class="text-reader">${finalHtml}</div>`;
             } else {
-                const lines = currentMaterial.content.split('\n'); let finalHtml = '';
+                const lines = currentMaterial.content.split('\n'); 
+                let finalHtml = '';
                 lines.forEach(lineText => { if(!lineText.trim()) return; finalHtml += `<div class="mb-4">${wrapWords(lineText, savedWordsMap)}</div>`; });
                 container.innerHTML = finalHtml;
             }
@@ -1157,7 +1236,6 @@
             if (e.target.classList.contains('word-clickable') && window.getSelection().toString().trim().length === 0) {
                 e.stopPropagation(); const word = e.target.getAttribute('data-word'); const rect = e.target.getBoundingClientRect();
                 
-                // ЗМІНЕНО: тепер ширина береться фактична, але не більше 90% екрану, щоб уникнути обрізання
                 const popupWidth = Math.min(288, window.innerWidth * 0.9);
                 const padding = 10;
                 const maxLeft = window.innerWidth - popupWidth - padding;
@@ -1172,12 +1250,49 @@
         document.addEventListener('click', (e) => { if(!inlinePopup.classList.contains('hidden') && !inlinePopup.contains(e.target) && !e.target.classList.contains('word-clickable')) closeInlinePopup(); });
         document.getElementById('inline-popup-trans-input').addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); saveWordFromInlinePopup(); } });
 
+        window.selectInlineTranslation = (text) => { document.getElementById('inline-popup-trans-input').value = text; }
+        window.closeInlinePopup = () => { inlinePopup.classList.add('hidden'); pendingInlineSaveData = null; };
+
+        window.toggleInlineDict = () => {
+            const content = document.getElementById('inline-dict-content');
+            const arrow = document.getElementById('inline-dict-arrow');
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                arrow.textContent = '▲';
+            } else {
+                content.classList.add('hidden');
+                arrow.textContent = '▼';
+            }
+        };
+
+        window.saveWordFromInlinePopup = async () => {
+            if(!activeUid || !pendingInlineSaveData) return;
+            const trans = document.getElementById('inline-popup-trans-input').value.trim(); if(!trans) return;
+            const btn = document.getElementById('inline-popup-save-btn'); const orig = btn.textContent; btn.disabled = true; btn.textContent = "...";
+            try {
+                const imgUrl = await getImageUrl(pendingInlineSaveData.word);
+                const existing = vocabulary.find(v => v.word.toLowerCase() === pendingInlineSaveData.word.toLowerCase());
+                if(existing) await deleteDoc(doc(db, 'users', activeUid, 'words', existing.id));
+                await addDoc(collection(db, 'users', activeUid, 'words'), { word: pendingInlineSaveData.word, translation: trans, context: pendingInlineSaveData.context, imageUrl: imgUrl, source: currentMaterial ? currentMaterial.title : "Читання", createdAt: serverTimestamp(), srsLevel: 0, nextReviewTime: 0 });
+                const words = document.getElementById('reader-content').querySelectorAll(`[data-word="${pendingInlineSaveData.word.toLowerCase()}"]`);
+                words.forEach(w => w.classList.add('word-saved')); closeInlinePopup();
+            } catch(e) {} finally { btn.disabled = false; btn.textContent = orig; }
+        };
+
         let pendingInlineSaveData = null;
         async function processInlineTranslationRequest(queryStr, fullText) {
             const query = queryStr.toLowerCase().trim(); inlinePopup.classList.remove('hidden');
             document.getElementById('inline-popup-word').textContent = queryStr; document.getElementById('inline-popup-trans-input').value = '';
             document.getElementById('inline-trans-dropdown').classList.add('hidden'); document.getElementById('inline-popup-loader').classList.remove('hidden'); document.getElementById('inline-popup-save-btn').classList.add('hidden');
             
+            const dictSection = document.getElementById('inline-dict-section');
+            const dictContent = document.getElementById('inline-dict-content');
+            const dictArrow = document.getElementById('inline-dict-arrow');
+            dictSection.classList.add('hidden');
+            dictContent.classList.add('hidden');
+            dictContent.innerHTML = '';
+            dictArrow.textContent = '▼';
+
             let sentence = ""; const pureText = currentMaterial.subtitles ? JSON.parse(currentMaterial.subtitles).map(s=>s.text).join(' ') : fullText;
             const idx = pureText.toLowerCase().indexOf(query);
             if(idx !== -1) { const start = Math.max(0, pureText.lastIndexOf('.', idx) + 1); let end = pureText.indexOf('.', idx); if(end === -1) end = pureText.length; sentence = pureText.substring(start, end + 1).trim(); }
@@ -1194,25 +1309,34 @@
                 document.getElementById('inline-popup-save-btn').textContent = "Зберегти (Enter)";
             }
             document.getElementById('inline-popup-loader').classList.add('hidden'); document.getElementById('inline-popup-trans-input').value = transText; document.getElementById('inline-popup-save-btn').classList.remove('hidden');
-            pendingInlineSaveData = { word: queryStr, context: sentence }; document.getElementById('inline-popup-trans-input')
-            //.focus(); ФОКУС ПРИБРАНО
-        }
+            pendingInlineSaveData = { word: queryStr, context: sentence }; document.getElementById('inline-popup-trans-input').focus();
 
-        window.selectInlineTranslation = (text) => { document.getElementById('inline-popup-trans-input').value = text; }
-        window.closeInlinePopup = () => { inlinePopup.classList.add('hidden'); pendingInlineSaveData = null; };
-        window.saveWordFromInlinePopup = async () => {
-            if(!activeUid || !pendingInlineSaveData) return;
-            const trans = document.getElementById('inline-popup-trans-input').value.trim(); if(!trans) return;
-            const btn = document.getElementById('inline-popup-save-btn'); const orig = btn.textContent; btn.disabled = true; btn.textContent = "...";
-            try {
-                const imgUrl = await getImageUrl(pendingInlineSaveData.word);
-                const existing = vocabulary.find(v => v.word.toLowerCase() === pendingInlineSaveData.word.toLowerCase());
-                if(existing) await deleteDoc(doc(db, 'users', activeUid, 'words', existing.id));
-                await addDoc(collection(db, 'users', activeUid, 'words'), { word: pendingInlineSaveData.word, translation: trans, context: pendingInlineSaveData.context, imageUrl: imgUrl, source: currentMaterial ? currentMaterial.title : "Читання", createdAt: serverTimestamp(), srsLevel: 0, nextReviewTime: 0 });
-                const words = document.getElementById('reader-content').querySelectorAll(`[data-word="${pendingInlineSaveData.word.toLowerCase()}"]`);
-                words.forEach(w => w.classList.add('word-saved')); closeInlinePopup();
-            } catch(e) {} finally { btn.disabled = false; btn.textContent = orig; }
-        };
+            // Пошук у безкоштовному Dictionary API
+            fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(query)}`)
+                .then(res => res.ok ? res.json() : null)
+                .then(data => {
+                    if (data && data.length > 0) {
+                        const meanings = data[0].meanings;
+                        let html = '';
+                        meanings.slice(0, 3).forEach(meaning => {
+                            const partOfSpeech = meaning.partOfSpeech;
+                            const definitions = meaning.definitions.slice(0, 2);
+                            html += `<div class="border-b border-slate-100 pb-1 mb-1 last:border-0">`;
+                            html += `<span class="font-bold text-indigo-600 italic uppercase text-[10px]">${partOfSpeech}</span>`;
+                            definitions.forEach(def => {
+                                html += `<p class="mt-0.5 text-[11px] text-slate-600 leading-normal">• ${def.definition}</p>`;
+                                if (def.example) {
+                                    html += `<p class="text-[10px] text-slate-400 italic pl-3 leading-normal">"${def.example}"</p>`;
+                                }
+                            });
+                            html += `</div>`;
+                        });
+                        dictContent.innerHTML = html || '<p class="text-slate-400 text-[11px]">Визначень не знайдено.</p>';
+                        dictSection.classList.remove('hidden');
+                    }
+                })
+                .catch(err => console.log('Dictionary fetch error:', err));
+        }
 
         window.showSrsStatus = (id) => {
             const word = vocabulary.find(v => v.id === id); if(!word) return;
@@ -1252,10 +1376,35 @@
             modal.classList.remove('hidden');
         };
 
+        // ТРЕНУВАННЯ ТА КРОСВОРД
         let bsWords = [], bsCurrentWordIdx = 0, bsCurrentStage = 0, bsTotalSteps = 0, bsCompletedSteps = 0;
         let activeSessionMode = 'all'; 
-        const MODE_STAGES = { 'all': [0, 1, 2, 3], 'word-trans': [1], 'trans-word': [4], 'constructor': [2], 'typing': [3], 'listening': [5], 'context': [6] };
-        const STAGE_NAMES = { 0: "Ознайомлення", 1: "Слово → Переклад", 2: "Конструктор", 3: "Написання", 4: "Переклад → Слово", 5: "Аудіювання", 6: "Контекст" };
+        let currentCrossword = null;
+        let activeWordIndex = null;
+        let activeCharIndex = null;
+
+        const MODE_STAGES = { 
+            'all': [0, 1, 2, 3], 
+            'word-trans': [1], 
+            'trans-word': [4], 
+            'constructor': [2], 
+            'typing': [3], 
+            'listening': [5], 
+            'context': [6],
+            'crossword': [7],
+            'sprint': [8]
+        };
+        const STAGE_NAMES = { 
+            0: "Ознайомлення", 
+            1: "Слово → Переклад", 
+            2: "Конструктор", 
+            3: "Написання", 
+            4: "Переклад → Слово", 
+            5: "Аудіювання", 
+            6: "Контекст",
+            7: "Кросворд",
+            8: "Спринт"
+        };
 
         window.toggleMute = () => { isGlobalAudioMuted = !isGlobalAudioMuted; const btn = document.getElementById('btn-global-mute'); btn.textContent = isGlobalAudioMuted ? '🔇' : '🔊'; btn.classList.toggle('bg-slate-300', isGlobalAudioMuted); if(isGlobalAudioMuted) window.speechSynthesis.cancel(); };
 
@@ -1282,16 +1431,56 @@
             if(mode === 'all') { dueWords = pool.filter(w => w.srsLevel < MAX_SRS_LEVEL && (!w.nextReviewTime || w.nextReviewTime <= now)); } 
             else { dueWords = pool.filter(w => (w[`srs_${mode}_Level`] || 0) < MAX_SRS_LEVEL && (!(w[`srs_${mode}_NextTime`] || 0) || w[`srs_${mode}_NextTime`] <= now)); }
 
-            if(dueWords.length === 0) {
-                dueWords = pool.filter(w => mode === 'all' ? w.srsLevel < MAX_SRS_LEVEL : (w[`srs_${mode}_Level`] || 0) < MAX_SRS_LEVEL).sort(() => 0.5 - Math.random());
-                if(dueWords.length === 0) dueWords = pool.sort(() => 0.5 - Math.random()); 
+            if(dueWords.length < 15) {
+                let randomExtra = pool.filter(w => !dueWords.includes(w)).sort(() => 0.5 - Math.random());
+                dueWords = [...dueWords, ...randomExtra];
             }
+            if(dueWords.length === 0) dueWords = pool.sort(() => 0.5 - Math.random()); 
 
-            bsWords = dueWords.slice(0, reqCount);
-            if(bsWords.length === 0) return;
+            const mainEl = document.querySelector('main');
+            const mainCard = document.getElementById('bs-main-card');
+            const extClues = document.getElementById('bs-external-clues');
+
+            if (mode === 'crossword') {
+                currentCrossword = makeCrossword(dueWords, 12); 
+                if (!currentCrossword || currentCrossword.placed.length < 2) {
+                    window.showModal("Не вдалося згенерувати кросворд. Переконайтеся, що в словнику є достатньо слів зі спільними літерами.");
+                    return;
+                }
+                
+                bsWords = currentCrossword.placed.map(p => {
+                    const originalWord = pool.find(w => w.id === p.id);
+                    return { ...originalWord, failed: false }; 
+                });
+                
+                mainEl.classList.replace('max-w-3xl', 'max-w-5xl');
+                mainCard.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100 text-center relative overflow-hidden flex flex-col min-h-[300px] w-full lg:w-7/12";
+                extClues.classList.remove('hidden');
+            } else {
+                if (mode === 'sprint') {
+                    bsWords = pool.sort(() => 0.5 - Math.random()).slice(0, 40);
+                    if (bsWords.length < 8) {
+                        let extras = vocabulary.filter(w => !bsWords.includes(w)).sort(() => 0.5 - Math.random());
+                        bsWords = [...bsWords, ...extras];
+                    }
+                } else {
+                    bsWords = dueWords.slice(0, reqCount);
+                }
+                
+                if(bsWords.length === 0) return;
+                
+                mainEl.classList.replace('max-w-5xl', 'max-w-3xl');
+                mainCard.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100 text-center relative overflow-hidden flex flex-col min-h-[300px] w-full";
+                extClues.classList.add('hidden');
+            }
 
             bsCurrentWordIdx = 0; const stagesForMode = MODE_STAGES[mode]; bsCurrentStage = stagesForMode[0]; 
             bsTotalSteps = bsWords.length * stagesForMode.length; bsCompletedSteps = 0;
+            
+            if (mode === 'sprint') {
+                bsTotalSteps = 60; 
+            }
+            
             document.getElementById('train-hub-screen').classList.add('hidden'); document.getElementById('bs-results').classList.add('hidden'); document.getElementById('bs-workspace').classList.remove('hidden');
             updateBsProgress(); renderBsStage();
         };
@@ -1309,11 +1498,40 @@
             updateBsProgress(); renderBsStage();
         };
 
-        window.endSession = () => { document.getElementById('bs-workspace').classList.add('hidden'); document.getElementById('bs-results').classList.add('hidden'); document.getElementById('train-hub-screen').classList.remove('hidden'); window.speechSynthesis.cancel(); document.removeEventListener('keydown', handleConstructorKeyboard); document.removeEventListener('keydown', handleGlobalKeyboard); };
+        window.endSession = () => { 
+            document.getElementById('bs-workspace').classList.add('hidden'); 
+            document.getElementById('bs-results').classList.add('hidden'); 
+            document.getElementById('train-hub-screen').classList.remove('hidden'); 
+            window.speechSynthesis.cancel(); 
+            document.removeEventListener('keydown', handleConstructorKeyboard); 
+            document.removeEventListener('keydown', handleGlobalKeyboard); 
+            
+            document.removeEventListener('keydown', handleSprintKeyboard);
+            if (sprintTimer) {
+                clearInterval(sprintTimer);
+                sprintTimer = null;
+            }
+
+            const mainEl = document.querySelector('main');
+            const mainCard = document.getElementById('bs-main-card');
+            const extClues = document.getElementById('bs-external-clues');
+            mainEl.classList.replace('max-w-5xl', 'max-w-3xl');
+            mainCard.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100 text-center relative overflow-hidden flex flex-col min-h-[300px] w-full";
+            extClues.classList.add('hidden');
+        };
 
         function updateBsProgress() { document.getElementById('bs-progress-bar').style.width = `${(bsCompletedSteps / bsTotalSteps) * 100}%`; document.getElementById('bs-overall-stage').textContent = activeSessionMode === 'review' ? "Повторення" : STAGE_NAMES[bsCurrentStage]; document.getElementById('bs-word-counter').textContent = `${bsCurrentWordIdx + 1} / ${bsWords.length}`; }
 
         window.nextBrainstormStep = () => {
+            if (activeSessionMode === 'crossword') {
+                bsWords.forEach(w => { if(w.failed === undefined) w.failed = false; });
+                return finishBrainstorm();
+            }
+            
+            if (activeSessionMode === 'sprint') {
+                return finishSprintSession();
+            }
+
             bsCompletedSteps++; bsCurrentWordIdx++;
             if (bsCurrentWordIdx >= bsWords.length) {
                 bsCurrentWordIdx = 0; const stages = activeSessionMode==='review'? [1] : MODE_STAGES[activeSessionMode]; const currentStageIndex = stages.indexOf(bsCurrentStage);
@@ -1324,13 +1542,20 @@
         async function finishBrainstorm() {
             document.getElementById('bs-workspace').classList.add('hidden'); 
             
+            const mainEl = document.querySelector('main');
+            const mainCard = document.getElementById('bs-main-card');
+            const extClues = document.getElementById('bs-external-clues');
+            mainEl.classList.replace('max-w-5xl', 'max-w-3xl');
+            mainCard.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100 text-center relative overflow-hidden flex flex-col min-h-[300px] w-full";
+            extClues.classList.add('hidden');
+
             try {
                 if(activeSessionMode === 'all') { 
                     for(let w of bsWords) {
                         let newLevel = w.failed ? 0 : Math.min((w.srsLevel || 0) + 1, MAX_SRS_LEVEL);
                         await updateDoc(doc(db, 'users', activeUid, 'words', w.id), { srsLevel: newLevel, nextReviewTime: Date.now() + SRS_INTERVALS[newLevel] });
                     }
-                } else if (activeSessionMode !== 'review') { 
+                } else if (activeSessionMode !== 'review' && activeSessionMode !== 'sprint') { 
                     for(let w of bsWords) {
                         let newLevel = w.failed ? 0 : Math.min((w[`srs_${activeSessionMode}_Level`] || 0) + 1, MAX_SRS_LEVEL);
                         await updateDoc(doc(db, 'users', activeUid, 'words', w.id), { 
@@ -1338,21 +1563,50 @@
                             [`srs_${activeSessionMode}_NextTime`]: Date.now() + SRS_INTERVALS[newLevel] 
                         });
                     }
+                } else if (activeSessionMode === 'sprint') {
+                    for(let w of bsWords) {
+                        let newLevel = w.failed ? 0 : Math.min((w.srsLevel || 0) + 1, MAX_SRS_LEVEL);
+                        await updateDoc(doc(db, 'users', activeUid, 'words', w.id), { 
+                            srsLevel: newLevel, 
+                            nextReviewTime: Date.now() + SRS_INTERVALS[newLevel] 
+                        });
+                    }
                 }
             } catch(e) { console.error(e); }
 
             document.getElementById('bs-results').classList.remove('hidden');
 
-            // ЗМІНЕНО: Програвання звуку при завершенні тренування
             if (!isGlobalAudioMuted) {
                 sessionEndAudio.currentTime = 0;
                 sessionEndAudio.play().catch(e => console.log("Audio play error:", e));
             }
 
+            let resultsIcon = "🏆";
+            let resultsTitle = "Завершено!";
+            let resultsSubtitle = "";
+            
+            if (activeSessionMode === 'sprint') {
+                resultsIcon = "⚡🏃‍♂️";
+                resultsTitle = "Спринт завершено!";
+                resultsSubtitle = `<div class="text-lg font-extrabold text-indigo-600 mb-4 bg-indigo-50 py-2 px-4 rounded-xl inline-block shadow-inner border border-indigo-100">Ваш рахунок: ${sprintScore} балів!</div>`;
+            }
+            
+            const resultsDiv = document.getElementById('bs-results');
+            resultsDiv.querySelector('.text-6xl').textContent = resultsIcon;
+            resultsDiv.querySelector('h2').textContent = resultsTitle;
+            
+            const oldSubtitle = resultsDiv.querySelector('.sprint-subtitle');
+            if (oldSubtitle) oldSubtitle.remove();
+            
+            if (resultsSubtitle) {
+                const subContainer = document.createElement('div');
+                subContainer.className = 'sprint-subtitle';
+                subContainer.innerHTML = resultsSubtitle;
+                resultsDiv.insertBefore(subContainer, document.getElementById('bs-results-list'));
+            }
+
             document.getElementById('bs-results-list').innerHTML = bsWords.map(w => {
-                let currentLevel = 0;
-                if (activeSessionMode === 'all' || activeSessionMode === 'review') currentLevel = w.srsLevel || 0;
-                else currentLevel = w[`srs_${activeSessionMode}_Level`] || 0;
+                let currentLevel = w.srsLevel || 0;
                 let newLevel = w.failed ? 0 : Math.min(currentLevel + 1, MAX_SRS_LEVEL);
                 
                 return `<div class="border-b border-slate-200 pb-3 mb-3 flex justify-between items-center">
@@ -1360,7 +1614,10 @@
                         <div class="w-8 h-8">${getSrsSvg(newLevel, false)}</div>
                         <span class="font-bold text-slate-800 text-lg">${w.word}</span>
                     </div>
-                    <span class="text-indigo-600 font-bold text-sm">${w.translation}</span>
+                    <div class="flex flex-col items-end">
+                        <span class="text-indigo-600 font-bold text-sm">${w.translation}</span>
+                        ${activeSessionMode === 'sprint' ? `<span class="text-[10px] font-bold ${w.failed ? 'text-rose-500' : 'text-emerald-500'} uppercase mt-0.5">${w.failed ? '❌ Помилка' : '✅ Успішно'}</span>` : ''}
+                    </div>
                 </div>`;
             }).join('');
         }
@@ -1394,7 +1651,6 @@
             const ctxEl = document.getElementById('bs-success-context');
             if(word.context) { 
                 const cleanContext = word.context.replace(/[_]/g, '');
-                // Додаємо легкий курсив для контексту у вікні успіху
                 ctxEl.innerHTML = `<span class="italic text-slate-600">"${cleanContext.replace(new RegExp(`(${word.word})`, 'gi'), '<b class="text-indigo-600">$1</b>')}"</span>`; 
             } else { ctxEl.textContent = ""; }
             
@@ -1409,6 +1665,7 @@
             const area = document.getElementById('bs-interactive-area'); const btnNext = document.getElementById('bs-btn-next'), feedback = document.getElementById('bs-feedback');
             feedback.innerHTML = ''; btnNext.classList.add('hidden'); document.getElementById('bs-btn-dont-know').classList.remove('hidden'); area.innerHTML = ''; document.getElementById('bs-success-reveal').classList.add('hidden');
             document.removeEventListener('keydown', handleConstructorKeyboard); document.removeEventListener('keydown', handleGlobalKeyboard); document.addEventListener('keydown', handleGlobalKeyboard);
+            document.removeEventListener('keydown', handleSprintKeyboard);
 
             if (bsCurrentStage === 0) { renderStageIntro(word, area, btnNext); document.getElementById('bs-btn-dont-know').classList.add('hidden'); }
             if (bsCurrentStage === 1) renderStageTestWT(word, area, btnNext, feedback); 
@@ -1417,6 +1674,9 @@
             if (bsCurrentStage === 3) renderStageTyping(word, area, btnNext, feedback, false); 
             if (bsCurrentStage === 5) renderStageTyping(word, area, btnNext, feedback, true);  
             if (bsCurrentStage === 6) renderStageContext(word, area, btnNext, feedback);
+            if (bsCurrentStage === 7) { renderStageCrossword(area, btnNext, feedback); document.getElementById('bs-btn-dont-know').classList.add('hidden'); }
+            if (bsCurrentStage === 8) { renderStageSprint(area, btnNext, feedback); }
+            
             if((bsCurrentStage === 0 || bsCurrentStage === 5) && !isGlobalAudioMuted) playAudioWord(word.word);
         }
 
@@ -1528,7 +1788,6 @@
 
             const replacedContext = contextStr.replace(regex, `<input type="text" id="ctx-type-input" class="inline-context-input" autocomplete="off">`);
             
-            // Новий дизайн цитати: курсив, лінія зліва, м'який фон
             area.innerHTML = `
                 <p class="text-lg text-indigo-700 font-bold mb-4 uppercase tracking-wider">${word.translation}</p>
                 <div class="text-xl text-slate-700 font-medium leading-relaxed italic border-l-4 border-indigo-200 pl-5 py-2 text-left inline-block max-w-xl mx-auto relative bg-slate-50/50 rounded-r-xl">
@@ -1551,10 +1810,606 @@
             });
         }
 
+        function makeCrossword(wordsList, maxWords = 10) {
+            const size = 15;
+            const grid = Array(size).fill(null).map(() => Array(size).fill(null));
+            const placed = [];
+            
+            const shuffled = [...wordsList].sort(() => 0.5 - Math.random());
+            const sorted = shuffled
+                .map(w => ({ 
+                    ...w, 
+                    cleanWord: w.word.replace(/[\s-]/g, '').toLowerCase() 
+                }))
+                .filter(w => w.cleanWord.length >= 2 && w.cleanWord.length <= size)
+                .sort((a, b) => b.cleanWord.length - a.cleanWord.length); 
+            
+            if (sorted.length === 0) return null;
+
+            function canPlace(word, startX, startY, dir) {
+                if (dir === 'H') {
+                    if (startX < 0 || startX + word.length > size || startY < 0 || startY >= size) return false;
+                } else {
+                    if (startY < 0 || startY + word.length > size || startX < 0 || startX >= size) return false;
+                }
+
+                let intersections = 0;
+                for (let i = 0; i < word.length; i++) {
+                    const x = startX + (dir === 'H' ? i : 0);
+                    const y = startY + (dir === 'V' ? i : 0);
+                    const currentCell = grid[y][x];
+
+                    if (dir === 'H') {
+                        if (i === 0 && startX > 0 && grid[y][startX - 1] !== null) return false;
+                        if (i === word.length - 1 && startX + word.length < size && grid[y][startX + word.length] !== null) return false;
+                        if (currentCell === null) {
+                            if (y > 0 && grid[y - 1][x] !== null) return false;
+                            if (y < size - 1 && grid[y + 1][x] !== null) return false;
+                        }
+                    } else {
+                        if (i === 0 && startY > 0 && grid[startY - 1][x] !== null) return false;
+                        if (i === word.length - 1 && startY + word.length < size && grid[startY + word.length][x] !== null) return false;
+                        if (currentCell === null) {
+                            if (x > 0 && grid[y][x - 1] !== null) return false;
+                            if (x < size - 1 && grid[y][x + 1] !== null) return false;
+                        }
+                    }
+
+                    if (currentCell !== null) {
+                        if (currentCell.char !== word[i]) return false;
+                        intersections++;
+                    }
+                }
+                return intersections > 0 || placed.length === 0;
+            }
+
+            function placeWord(wordObj, startX, startY, dir, number, placedIndex) {
+                const word = wordObj.cleanWord;
+                for (let i = 0; i < word.length; i++) {
+                    const x = startX + (dir === 'H' ? i : 0);
+                    const y = startY + (dir === 'V' ? i : 0);
+                    
+                    if (grid[y][x] === null) {
+                        grid[y][x] = {
+                            char: word[i],
+                            userChar: '',
+                            wordIndex: placedIndex,
+                            charIndex: i,
+                            number: i === 0 ? number : null
+                        };
+                    } else {
+                        if (i === 0 && !grid[y][x].number) {
+                            grid[y][x].number = number;
+                        }
+                    }
+                }
+                placed.push({
+                    ...wordObj,
+                    origIndex: placedIndex, 
+                    x: startX,
+                    y: startY,
+                    dir: dir,
+                    number: number
+                });
+            }
+
+            let firstWord = sorted[0];
+            let startX = Math.floor((size - firstWord.cleanWord.length) / 2);
+            let startY = Math.floor(size / 2);
+            placeWord(firstWord, startX, startY, 'H', 1, 0);
+
+            let wordNumber = 2;
+            for (let k = 1; k < sorted.length; k++) {
+                if (placed.length >= maxWords) break;
+                
+                const wObj = sorted[k];
+                const word = wObj.cleanWord;
+
+                outerLoop:
+                for (let i = 0; i < word.length; i++) {
+                    for (const p of placed) {
+                        const pWord = p.cleanWord;
+                        for (let j = 0; j < pWord.length; j++) {
+                            if (word[i] === pWord[j]) {
+                                const dir = p.dir === 'H' ? 'V' : 'H';
+                                const x = p.x + (p.dir === 'H' ? j : 0);
+                                const y = p.y + (p.dir === 'V' ? j : 0);
+                                
+                                const sX = dir === 'H' ? x - i : x;
+                                const sY = dir === 'V' ? y - i : y;
+
+                                if (canPlace(word, sX, sY, dir)) {
+                                    placeWord(wObj, sX, sY, dir, wordNumber++, placed.length);
+                                    break outerLoop;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return { grid, placed };
+        }
+
+        window.focusCell = (wordIndex, charIndex) => {
+            activeWordIndex = wordIndex;
+            activeCharIndex = charIndex;
+            
+            const w = currentCrossword.placed.find(p => p.origIndex === wordIndex);
+            if (!w) return;
+            
+            const x = w.x + (w.dir === 'H' ? charIndex : 0);
+            const y = w.y + (w.dir === 'V' ? charIndex : 0);
+            
+            const inputEl = document.getElementById(`cw-input-${x}-${y}`);
+            if (inputEl) {
+                inputEl.focus();
+                inputEl.select();
+            }
+            
+            highlightActiveWord(wordIndex, x, y);
+        };
+
+        window.highlightActiveWord = (wordIndex, activeX, activeY) => {
+            document.querySelectorAll('.cw-cell-wrapper').forEach(el => {
+                el.classList.remove('bg-indigo-50', 'border-indigo-400', 'ring-2', 'ring-indigo-500', 'bg-indigo-100');
+                el.classList.add('bg-white', 'border-slate-300');
+            });
+            document.querySelectorAll('[id^="cw-clue-"]').forEach(el => {
+                el.classList.remove('text-indigo-600', 'font-bold', 'bg-indigo-50/50');
+            });
+            
+            const w = currentCrossword.placed.find(p => p.origIndex === wordIndex);
+            if (!w) return;
+            
+            const clueEl = document.getElementById(`cw-clue-${wordIndex}`);
+            if (clueEl) {
+                clueEl.classList.add('text-indigo-600', 'font-bold', 'bg-indigo-50/50');
+            }
+            
+            for (let i = 0; i < w.cleanWord.length; i++) {
+                const x = w.x + (w.dir === 'H' ? i : 0);
+                const y = w.y + (w.dir === 'V' ? i : 0);
+                
+                const wrapper = document.getElementById(`cw-input-${x}-${y}`)?.parentElement;
+                if (wrapper) {
+                    if (x === activeX && y === activeY) {
+                        wrapper.classList.remove('bg-white', 'border-slate-300');
+                        wrapper.classList.add('bg-indigo-100', 'border-indigo-500', 'ring-2', 'ring-indigo-500');
+                    } else {
+                        wrapper.classList.remove('bg-white', 'border-slate-300');
+                        wrapper.classList.add('bg-indigo-50', 'border-indigo-400');
+                    }
+                }
+            }
+        };
+
+        window.handleCwInput = (e, x, y, inputEl) => {
+            const char = inputEl.value.trim().toLowerCase();
+            const cell = currentCrossword.grid[y][x];
+            if (cell) cell.userChar = char;
+            
+            inputEl.value = char.toUpperCase();
+            
+            const w = currentCrossword.placed.find(p => p.origIndex === activeWordIndex);
+            if (!w) return;
+            const nextCharIdx = activeCharIndex + 1;
+            if (nextCharIdx < w.cleanWord.length) {
+                focusCell(activeWordIndex, nextCharIdx);
+            } else {
+                checkCrosswordStatus();
+            }
+        };
+
+        window.handleCwKeydown = (e, x, y, inputEl) => {
+            if (e.key === 'Backspace') {
+                if (inputEl.value === '') {
+                    e.preventDefault();
+                    const w = currentCrossword.placed.find(p => p.origIndex === activeWordIndex);
+                    if (!w) return;
+                    const prevCharIdx = activeCharIndex - 1;
+                    if (prevCharIdx >= 0) {
+                        const px = w.x + (w.dir === 'H' ? prevCharIdx : 0);
+                        const py = w.y + (w.dir === 'V' ? prevCharIdx : 0);
+                        const prevCell = currentCrossword.grid[py][px];
+                        if (prevCell) prevCell.userChar = '';
+                        const prevInput = document.getElementById(`cw-input-${px}-${py}`);
+                        if (prevInput) prevInput.value = '';
+                        focusCell(activeWordIndex, prevCharIdx);
+                    }
+                } else {
+                    const cell = currentCrossword.grid[y][x];
+                    if (cell) cell.userChar = '';
+                    inputEl.value = '';
+                }
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prevCharIdx = activeCharIndex - 1;
+                if (prevCharIdx >= 0) {
+                    focusCell(activeWordIndex, prevCharIdx);
+                }
+            } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                const w = currentCrossword.placed.find(p => p.origIndex === activeWordIndex);
+                if (!w) return;
+                const nextCharIdx = activeCharIndex + 1;
+                if (nextCharIdx < w.cleanWord.length) {
+                    focusCell(activeWordIndex, nextCharIdx);
+                }
+            }
+        };
+
+        window.checkCrosswordStatus = () => {
+            let allCorrect = true;
+            
+            currentCrossword.placed.forEach(p => {
+                let wordCorrect = true;
+                for (let i = 0; i < p.cleanWord.length; i++) {
+                    const x = p.x + (p.dir === 'H' ? i : 0);
+                    const y = p.y + (p.dir === 'V' ? i : 0);
+                    const cell = currentCrossword.grid[y][x];
+                    if (!cell || (cell.userChar || '').toLowerCase() !== p.cleanWord[i].toLowerCase()) {
+                        wordCorrect = false;
+                        allCorrect = false;
+                    }
+                }
+                const clueEl = document.getElementById(`cw-clue-${p.origIndex}`);
+                if (clueEl) {
+                    if (wordCorrect) {
+                        clueEl.classList.add('line-through', 'text-slate-400');
+                    } else {
+                        clueEl.classList.remove('line-through', 'text-slate-400');
+                    }
+                }
+            });
+
+            if (allCorrect) {
+                const feedback = document.getElementById('bs-feedback');
+                feedback.innerHTML = '<span class="text-emerald-600 font-bold text-xl">Кросворд повністю розгадано! 🎉</span>';
+                document.getElementById('bs-btn-next').classList.remove('hidden');
+                document.getElementById('bs-btn-dont-know').classList.add('hidden');
+                if (!isGlobalAudioMuted) playAudioWord("Excellent! Well done.");
+            }
+        };
+
+        window.revealActiveWordHint = () => {
+            if (activeWordIndex === null || activeCharIndex === null) return;
+            const w = currentCrossword.placed.find(p => p.origIndex === activeWordIndex);
+            if (!w) return;
+            
+            if (bsWords[activeWordIndex]) bsWords[activeWordIndex].failed = true; 
+
+            const x = w.x + (w.dir === 'H' ? activeCharIndex : 0);
+            const y = w.y + (w.dir === 'V' ? activeCharIndex : 0);
+            
+            const cell = currentCrossword.grid[y][x];
+            const correctLetter = w.cleanWord[activeCharIndex];
+            
+            const inputEl = document.getElementById(`cw-input-${x}-${y}`);
+            if (inputEl) {
+                inputEl.value = correctLetter.toUpperCase();
+                if (cell) cell.userChar = correctLetter.toLowerCase();
+                
+                const nextCharIdx = activeCharIndex + 1;
+                if (nextCharIdx < w.cleanWord.length) {
+                    focusCell(activeWordIndex, nextCharIdx);
+                } else {
+                    checkCrosswordStatus();
+                }
+            }
+        };
+
+        window.revealActiveWord = () => {
+            if (activeWordIndex === null) return;
+            const w = currentCrossword.placed.find(p => p.origIndex === activeWordIndex);
+            if (!w) return;
+            
+            if (bsWords[activeWordIndex]) bsWords[activeWordIndex].failed = true; 
+
+            for (let i = 0; i < w.cleanWord.length; i++) {
+                const x = w.x + (w.dir === 'H' ? i : 0);
+                const y = w.y + (w.dir === 'V' ? i : 0);
+                const cell = currentCrossword.grid[y][x];
+                const correctLetter = w.cleanWord[i];
+                
+                const inputEl = document.getElementById(`cw-input-${x}-${y}`);
+                if (inputEl) {
+                    inputEl.value = correctLetter.toUpperCase();
+                    if (cell) cell.userChar = correctLetter.toLowerCase();
+                }
+            }
+            checkCrosswordStatus();
+        };
+
+        function renderStageCrossword(area, btnNext, feedback) {
+            const size = 15;
+            const across = currentCrossword.placed.filter(p => p.dir === 'H');
+            const down = currentCrossword.placed.filter(p => p.dir === 'V');
+            
+            let cluesHtml = `
+            <div class="bg-white/95 backdrop-blur-md p-5 rounded-2xl border border-slate-200/80 shadow-md text-left max-h-[480px] overflow-y-auto custom-scroll">
+                <h4 class="font-extrabold text-slate-800 text-lg border-b-2 border-indigo-100 pb-1.5 mb-3 flex items-center gap-2">
+                    <span>🧩</span> Кросворд: Підказки
+                </h4>
+                <div class="space-y-4">
+                    <div>
+                        <h5 class="font-bold text-indigo-700 text-sm mb-2 flex items-center gap-1">➡️ По горизонталі:</h5>
+                        <ul class="space-y-2 font-medium text-slate-700">
+                            ${across.map(p => `
+                                <li id="cw-clue-${p.origIndex}" 
+                                    class="cursor-pointer hover:text-indigo-600 transition p-2 rounded-xl border border-transparent hover:border-slate-100 hover:bg-white text-base flex justify-between items-center" 
+                                    onclick="focusCell(${p.origIndex}, 0)">
+                                    <span><b>${p.number}.</b> ${p.translation}</span> 
+                                    <span class="text-slate-400 text-xs ml-2 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 whitespace-nowrap">(${p.cleanWord.length} літ.)</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                    <div>
+                        <h5 class="font-bold text-indigo-700 text-sm mb-2 flex items-center gap-1">⬇️ По вертикалі:</h5>
+                        <ul class="space-y-2 font-medium text-slate-700">
+                            ${down.map(p => `
+                                <li id="cw-clue-${p.origIndex}" 
+                                    class="cursor-pointer hover:text-indigo-600 transition p-2 rounded-xl border border-transparent hover:border-slate-100 hover:bg-white text-base flex justify-between items-center" 
+                                    onclick="focusCell(${p.origIndex}, 0)">
+                                    <span><b>${p.number}.</b> ${p.translation}</span> 
+                                    <span class="text-slate-400 text-xs ml-2 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 whitespace-nowrap">(${p.cleanWord.length} літ.)</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+            </div>`;
+            
+            let actionsHtml = `
+            <div class="flex flex-col gap-2 w-full max-w-sm sm:max-w-md mx-auto mb-2 mt-4 text-center">
+                <div class="flex gap-3 justify-center w-full">
+                    <button onclick="revealActiveWordHint()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-3 px-4 rounded-xl font-bold shadow-sm transition text-sm">Підказка літери</button>
+                    <button onclick="revealActiveWord()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-xl font-bold shadow-sm transition text-sm">Відкрити слово</button>
+                </div>
+                <span class="text-[11px] text-slate-400 font-bold mt-1">* Вводьте слова без пробілів та дефісів!</span>
+            </div>`;
+            
+            let gridHtml = `<div class="grid grid-cols-15 gap-1 border border-slate-200 p-3 bg-slate-100 rounded-2xl max-w-sm sm:max-w-md mx-auto shadow-inner">`;
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const cell = currentCrossword.grid[y][x];
+                    if (cell) {
+                        const cellNum = cell.number ? `<span class="absolute top-0.5 left-1 text-[10px] font-bold text-indigo-700 leading-none">${cell.number}</span>` : '';
+                        gridHtml += `
+                        <div class="relative aspect-square cw-cell-wrapper bg-white border border-slate-300 rounded-lg flex items-center justify-center shadow-sm cursor-pointer" onclick="focusCell(${cell.wordIndex}, ${cell.charIndex})">
+                            ${cellNum}
+                            <input id="cw-input-${x}-${y}" type="text" maxlength="1" value="${(cell.userChar || '').toUpperCase()}" 
+                                   class="w-full h-full text-center text-sm sm:text-base font-extrabold text-slate-800 bg-transparent uppercase focus:outline-none"
+                                   oninput="handleCwInput(event, ${x}, ${y}, this)"
+                                   onkeydown="handleCwKeydown(event, ${x}, ${y}, this)"
+                                   onclick="event.stopPropagation(); focusCell(${cell.wordIndex}, ${cell.charIndex})">
+                        </div>`;
+                    } else {
+                        gridHtml += `<div class="aspect-square bg-slate-50/30 border border-transparent"></div>`;
+                    }
+                }
+            }
+            gridHtml += `</div>`;
+
+            area.innerHTML = `
+                <div class="flex flex-col items-center justify-center w-full mt-2">
+                    ${gridHtml}
+                    ${actionsHtml}
+                </div>`;
+            
+            const extClues = document.getElementById('bs-external-clues');
+            if (extClues) {
+                extClues.innerHTML = cluesHtml;
+            }
+            
+            focusCell(currentCrossword.placed[0].origIndex, 0);
+        }
+
+        function renderStageSprint(area, btnNext, feedback) {
+            document.getElementById('bs-btn-dont-know').classList.add('hidden');
+            document.getElementById('bs-btn-next').classList.add('hidden');
+
+            area.innerHTML = `
+                <div class="flex flex-col items-center justify-center w-full max-w-md mx-auto py-2">
+                    <!-- Dashboard Indicators -->
+                    <div class="flex justify-between items-center w-full mb-5 px-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/50 shadow-inner">
+                        <div class="flex items-center gap-1.5 bg-white py-1 px-3.5 rounded-full border border-slate-100 shadow-sm">
+                            <span class="text-xl">⏳</span>
+                            <span id="sprint-timer-val" class="font-extrabold text-2xl text-indigo-600 tabular-nums">60s</span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Рахунок</span>
+                            <span id="sprint-score-val" class="font-black text-3xl text-indigo-700 tabular-nums">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Streak Board -->
+                    <div id="sprint-streak-container" class="mb-5 transform transition-all duration-300 scale-100 flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-5 py-2 rounded-full shadow-sm">
+                        <span class="text-lg">🔥</span>
+                        <span id="sprint-streak-val" class="text-sm font-bold text-indigo-700">Стрік: 0 (x1 за відповідь)</span>
+                    </div>
+
+                    <!-- Cards Displaying Words -->
+                    <div id="sprint-q-card" class="w-full bg-slate-50 border border-slate-200/60 rounded-2xl p-6 sm:p-8 min-h-[190px] flex flex-col justify-center items-center mb-6 transition-all duration-200 shadow-sm relative">
+                        <h3 id="sprint-q-word" class="text-3xl sm:text-4xl font-extrabold text-slate-800 tracking-tight mb-2 select-none"></h3>
+                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">це означає?</div>
+                        <p id="sprint-q-translation" class="text-2xl sm:text-3xl font-black text-indigo-600 italic select-none"></p>
+                    </div>
+
+                    <!-- Touch Actions -->
+                    <div class="grid grid-cols-2 gap-4 w-full">
+                        <button onclick="submitSprintAnswer(false)" class="bg-rose-500 hover:bg-rose-600 text-white font-extrabold py-4 px-3 sm:px-6 rounded-2xl shadow-md active:scale-95 transition flex flex-col items-center justify-center gap-1">
+                            <span class="text-lg sm:text-xl">❌ Неправильно</span>
+                            <span class="text-[9px] text-rose-100 font-bold tracking-widest opacity-80 uppercase">[← Вліво]</span>
+                        </button>
+                        <button onclick="submitSprintAnswer(true)" class="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-4 px-3 sm:px-6 rounded-2xl shadow-md active:scale-95 transition flex flex-col items-center justify-center gap-1">
+                            <span class="text-lg sm:text-xl">Правильно ✅</span>
+                            <span class="text-[9px] text-emerald-100 font-bold tracking-widest opacity-80 uppercase">[Вправо →]</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            if (!sprintTimer) {
+                sprintTimeLeft = 60;
+                sprintScore = 0;
+                sprintStreak = 0;
+                sprintWordsStats = {};
+                
+                sprintTimer = setInterval(() => {
+                    sprintTimeLeft--;
+                    bsCompletedSteps = 60 - sprintTimeLeft;
+                    
+                    const timerEl = document.getElementById('sprint-timer-val');
+                    if (timerEl) {
+                        timerEl.textContent = `${sprintTimeLeft}s`;
+                        if (sprintTimeLeft <= 10) {
+                            timerEl.classList.add('text-rose-500', 'animate-pulse');
+                        }
+                    }
+                    if (sprintTimeLeft <= 0) {
+                        finishSprintSession();
+                    }
+                }, 1000);
+            }
+
+            document.addEventListener('keydown', handleSprintKeyboard);
+            generateNextSprintQ();
+        }
+
+        window.generateNextSprintQ = () => {
+            const word = bsWords[Math.floor(Math.random() * bsWords.length)];
+            const isCorrect = Math.random() < 0.5;
+            let shownTranslation = word.translation;
+
+            if (!isCorrect) {
+                const pool = vocabulary.filter(v => v.id !== word.id);
+                if (pool.length > 0) {
+                    shownTranslation = pool[Math.floor(Math.random() * pool.length)].translation;
+                } else {
+                    shownTranslation = word.translation + " (невірно)";
+                }
+            }
+
+            currentSprintQ = { word, shownTranslation, isCorrect };
+
+            const qWordEl = document.getElementById('sprint-q-word');
+            const qTransEl = document.getElementById('sprint-q-translation');
+            if (qWordEl && qTransEl) {
+                qWordEl.textContent = word.word;
+                qTransEl.textContent = shownTranslation;
+            }
+        };
+
+        window.submitSprintAnswer = (userChoice) => {
+            if (!currentSprintQ) return;
+
+            const isCorrectAnswer = (userChoice === currentSprintQ.isCorrect);
+            const wordId = currentSprintQ.word.id;
+            
+            if (!sprintWordsStats[wordId]) sprintWordsStats[wordId] = { correct: 0, wrong: 0 };
+
+            const streakContainer = document.getElementById('sprint-streak-container');
+            const cardEl = document.getElementById('sprint-q-card');
+
+            if (isCorrectAnswer) {
+                sprintWordsStats[wordId].correct++;
+                sprintStreak++;
+                
+                const multiplier = Math.floor(sprintStreak / 10) + 1;
+                sprintScore += multiplier;
+
+                if (cardEl) {
+                    cardEl.classList.remove('border-slate-200/60');
+                    cardEl.classList.add('bg-emerald-50', 'border-emerald-400');
+                    setTimeout(() => {
+                        cardEl.classList.remove('bg-emerald-50', 'border-emerald-400');
+                        cardEl.classList.add('border-slate-200/60');
+                    }, 180);
+                }
+
+                if (streakContainer) {
+                    const streakValEl = document.getElementById('sprint-streak-val');
+                    if (streakValEl) streakValEl.textContent = `Стрік: ${sprintStreak} (x${multiplier} за відповідь)`;
+                    
+                    if (sprintStreak > 0 && sprintStreak % 10 === 0) {
+                        streakContainer.classList.add('scale-110', 'bg-amber-100', 'border-amber-300');
+                        setTimeout(() => {
+                            streakContainer.classList.remove('scale-110', 'bg-amber-100', 'border-amber-300');
+                        }, 400);
+                    }
+                }
+            } else {
+                sprintWordsStats[wordId].wrong++;
+                sprintStreak = 0; 
+
+                if (cardEl) {
+                    cardEl.classList.remove('border-slate-200/60');
+                    cardEl.classList.add('bg-rose-50', 'border-rose-400', 'animate-shake');
+                    setTimeout(() => {
+                        cardEl.classList.remove('bg-rose-50', 'border-rose-400', 'animate-shake');
+                        cardEl.classList.add('border-slate-200/60');
+                    }, 180);
+                }
+
+                if (streakContainer) {
+                    const streakValEl = document.getElementById('sprint-streak-val');
+                    if (streakValEl) streakValEl.textContent = `Стрік: 0 (x1 за відповідь)`;
+                }
+            }
+
+            const scoreEl = document.getElementById('sprint-score-val');
+            if (scoreEl) {
+                scoreEl.textContent = sprintScore;
+            }
+
+            generateNextSprintQ();
+        };
+
+        window.handleSprintKeyboard = (e) => {
+            if (activeSessionMode !== 'sprint' || bsCurrentStage !== 8) return;
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                submitSprintAnswer(false);
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                submitSprintAnswer(true);
+            }
+        };
+
+        window.finishSprintSession = async () => {
+            if (sprintTimer) { clearInterval(sprintTimer); sprintTimer = null; }
+            document.removeEventListener('keydown', handleSprintKeyboard);
+
+            const finalReviewedWords = [];
+            for (let w of bsWords) {
+                const stats = sprintWordsStats[w.id];
+                if (stats && (stats.correct > 0 || stats.wrong > 0)) {
+                    w.failed = (stats.wrong > 0);
+                    finalReviewedWords.push(w);
+                }
+            }
+
+            if (finalReviewedWords.length === 0 && bsWords.length > 0) {
+                const dummy = bsWords[0];
+                dummy.failed = true;
+                finalReviewedWords.push(dummy);
+            }
+
+            bsWords = finalReviewedWords;
+            finishBrainstorm();
+        };
+
         window.switchTab = (tab) => {
-            ['dictionary', 'library', 'training'].forEach(t => { document.getElementById(`view-${t}`).classList.add('hidden'); document.getElementById(`tab-${t}`).className = 'flex-1 py-3.5 text-slate-500 hover:text-indigo-500 transition-colors border-b-[3px] border-transparent'; });
-            document.getElementById(`view-${tab}`).classList.remove('hidden'); document.getElementById(`tab-${tab}`).className = 'flex-1 py-3.5 text-indigo-600 border-b-[3px] border-indigo-600 transition-colors font-bold';
-            if(tab !== 'library') closeReader(); if(tab !== 'training') endSession();
+            ['dictionary', 'library', 'training'].forEach(t => { 
+                document.getElementById(`view-${t}`).classList.add('hidden'); 
+                document.getElementById(`tab-${t}`).className = 'flex-1 py-3.5 text-slate-500 hover:text-indigo-500 transition-colors border-b-[3px] border-transparent'; 
+            });
+            document.getElementById(`view-${tab}`).classList.remove('hidden'); 
+            document.getElementById(`tab-${tab}`).className = 'flex-1 py-3.5 text-indigo-600 border-b-[3px] border-indigo-600 transition-colors font-bold';
+            if(tab !== 'library') closeReader(); 
+            if(tab !== 'training') endSession();
         };
     </script>
 </body>
