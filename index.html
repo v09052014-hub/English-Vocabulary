@@ -424,6 +424,10 @@
                         <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">⚡🏃‍♂️</div>
                         <h4 class="font-bold text-slate-700 text-sm">Спринт</h4>
                     </button>
+                    <button onclick="startSession('picture')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:border-cyan-400 transition text-center flex flex-col items-center justify-center aspect-square group">
+                        <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">🖼️🤔</div>
+                        <h4 class="font-bold text-slate-700 text-sm">По фото</h4>
+                    </button>
                 </div>
             </div>
 
@@ -1247,6 +1251,36 @@
                 processInlineTranslationRequest(word, currentMaterial.content);
             }
         });
+
+        // Додано підтримку перекладу виділених фраз (selection)
+        const handleTextSelection = (e) => {
+            setTimeout(() => {
+                const selection = window.getSelection();
+                const text = selection.toString().trim();
+                
+                // Перевіряємо, чи виділено валідний фрагмент (обмеження в 150 символів)
+                if (text.length > 0 && text.length <= 150 && !text.includes('\n\n')) {
+                    const range = selection.getRangeAt(0);
+                    const rect = range.getBoundingClientRect();
+                    
+                    if(rect.width === 0 && rect.height === 0) return;
+                    
+                    const popupWidth = Math.min(288, window.innerWidth * 0.9);
+                    const padding = 10;
+                    const maxLeft = window.innerWidth - popupWidth - padding;
+                    let calculatedLeft = rect.left + (rect.width / 2) - (popupWidth / 2);
+                    calculatedLeft = Math.max(padding, Math.min(calculatedLeft, maxLeft));
+                    
+                    inlinePopup.style.top = `${window.scrollY + rect.bottom + 8}px`; 
+                    inlinePopup.style.left = `${calculatedLeft}px`; 
+                    processInlineTranslationRequest(text, currentMaterial ? currentMaterial.content : '');
+                }
+            }, 100);
+        };
+
+        document.getElementById('reader-content').addEventListener('mouseup', handleTextSelection);
+        document.getElementById('reader-content').addEventListener('touchend', handleTextSelection);
+
         document.addEventListener('click', (e) => { if(!inlinePopup.classList.contains('hidden') && !inlinePopup.contains(e.target) && !e.target.classList.contains('word-clickable')) closeInlinePopup(); });
         document.getElementById('inline-popup-trans-input').addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); saveWordFromInlinePopup(); } });
 
@@ -1309,7 +1343,8 @@
                 document.getElementById('inline-popup-save-btn').textContent = "Зберегти (Enter)";
             }
             document.getElementById('inline-popup-loader').classList.add('hidden'); document.getElementById('inline-popup-trans-input').value = transText; document.getElementById('inline-popup-save-btn').classList.remove('hidden');
-            pendingInlineSaveData = { word: queryStr, context: sentence }; document.getElementById('inline-popup-trans-input').focus();
+            pendingInlineSaveData = { word: queryStr, context: sentence }; 
+            // document.getElementById('inline-popup-trans-input').focus(); /* Вимкнено автоматичний фокус для мобільних */
 
             // Пошук у безкоштовному Dictionary API
             fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(query)}`)
@@ -1392,7 +1427,8 @@
             'listening': [5], 
             'context': [6],
             'crossword': [7],
-            'sprint': [8]
+            'sprint': [8],
+            'picture': [9]
         };
         const STAGE_NAMES = { 
             0: "Ознайомлення", 
@@ -1403,7 +1439,8 @@
             5: "Аудіювання", 
             6: "Контекст",
             7: "Кросворд",
-            8: "Спринт"
+            8: "Спринт",
+            9: "По фото"
         };
 
         window.toggleMute = () => { isGlobalAudioMuted = !isGlobalAudioMuted; const btn = document.getElementById('btn-global-mute'); btn.textContent = isGlobalAudioMuted ? '🔇' : '🔊'; btn.classList.toggle('bg-slate-300', isGlobalAudioMuted); if(isGlobalAudioMuted) window.speechSynthesis.cancel(); };
@@ -1676,6 +1713,7 @@
             if (bsCurrentStage === 6) renderStageContext(word, area, btnNext, feedback);
             if (bsCurrentStage === 7) { renderStageCrossword(area, btnNext, feedback); document.getElementById('bs-btn-dont-know').classList.add('hidden'); }
             if (bsCurrentStage === 8) { renderStageSprint(area, btnNext, feedback); }
+            if (bsCurrentStage === 9) renderStagePicture(word, area, btnNext, feedback);
             
             if((bsCurrentStage === 0 || bsCurrentStage === 5) && !isGlobalAudioMuted) playAudioWord(word.word);
         }
@@ -1805,6 +1843,34 @@
                     } else {
                         word.failed = true;
                         inp.classList.add('wrong'); inp.disabled = true; triggerSuccessReveal(word);
+                    }
+                }
+            });
+        }
+
+        function renderStagePicture(word, area, btnNext, feedback) {
+            area.innerHTML = `
+                <div class="mx-auto w-48 h-48 sm:w-56 sm:h-56 rounded-xl overflow-hidden shadow-sm mb-6 border border-slate-200">
+                    <img src="${word.imageUrl}" class="w-full h-full object-cover" onerror="imgError(this)">
+                </div>
+                <div class="flex flex-col items-center justify-center gap-3 w-full max-w-sm mx-auto relative">
+                    <input type="text" id="bs-pic-input" class="w-full p-4 text-center text-2xl font-bold border-2 border-slate-300 rounded-2xl focus:border-indigo-500 outline-none transition-colors" autocomplete="off" placeholder="Англійською (Enter)">
+                </div>`;
+                
+            const inp = document.getElementById('bs-pic-input'); 
+            setTimeout(()=>inp.focus(), 50); // Фокус при тренуванні зазвичай прийнятний, бо клавіатура вже відкрита або необхідна
+            
+            inp.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter') {
+                    e.preventDefault(); e.stopPropagation(); if(inp.disabled) return; 
+                    const userVal = inp.value.trim().toLowerCase();
+                    if(userVal === word.word.toLowerCase()) {
+                        inp.classList.replace('border-slate-300', 'border-emerald-500'); inp.classList.add('bg-emerald-50', 'text-emerald-700'); inp.disabled = true;
+                        triggerSuccessReveal(word);
+                    } else {
+                        word.failed = true;
+                        inp.classList.replace('border-slate-300', 'border-rose-400'); inp.classList.add('text-rose-500', 'bg-rose-50'); inp.disabled = true;
+                        triggerSuccessReveal(word);
                     }
                 }
             });
