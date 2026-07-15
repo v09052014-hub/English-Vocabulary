@@ -1663,7 +1663,7 @@
         let activeCharIndex = null;
 
         const MODE_STAGES = { 
-            'all': [0, 1, 2, 3], 
+            'all': [0, 1, 2, 3, 5], 
             'word-trans': [1], 
             'trans-word': [4], 
             'constructor': [2], 
@@ -1824,9 +1824,18 @@
 
             bsCompletedSteps++; bsCurrentWordIdx++;
             if (bsCurrentWordIdx >= bsWords.length) {
-                const stages = activeSessionMode==='review'? [1] : MODE_STAGES[activeSessionMode]; const currentStageIndex = stages.indexOf(bsCurrentStage);
-                if(currentStageIndex + 1 < stages.length) bsCurrentStage = stages[currentStageIndex + 1]; else return finishBrainstorm(); 
-            } updateBsProgress(); renderBsStage();
+                const stages = activeSessionMode==='review'? [1] : MODE_STAGES[activeSessionMode]; 
+                const currentStageIndex = stages.indexOf(bsCurrentStage);
+                
+                if(currentStageIndex + 1 < stages.length) {
+                    bsCurrentStage = stages[currentStageIndex + 1];
+                    bsCurrentWordIdx = 0; // ВАЖЛИВО: Скидаємо індекс на початок для нової вправи!
+                } else {
+                    return finishBrainstorm();
+                }
+            } 
+            updateBsProgress(); 
+            renderBsStage();
         };
 
         async function finishBrainstorm() {
