@@ -293,7 +293,7 @@
             <div id="library-add-view" class="hidden bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                 <div class="flex gap-2 mb-4 border-b border-slate-100 pb-2">
                     <button onclick="setAddMode('text')" id="tab-add-text" class="px-4 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-lg text-sm transition">Текст</button>
-                    <button onclick="setAddMode('url')" id="tab-add-url" class="px-4 py-2 text-slate-500 font-bold rounded-lg hover:bg-slate-50 text-sm transition">Стаття (URL)</button>
+                    <button onclick="setAddMode('url')" id="tab-add-url" class="px-4 py-2 text-slate-500 font-bold rounded-lg hover:bg-slate-50 text-sm transition">Стаття (URL / Пошук)</button>
                     <button onclick="setAddMode('yt')" id="tab-add-yt" class="px-4 py-2 text-slate-500 font-bold rounded-lg hover:bg-slate-50 text-sm transition">YouTube + Субтитри</button>
                 </div>
 
@@ -306,19 +306,49 @@
 
                 <!-- Tab: URL -->
                 <div id="mode-url-area" class="hidden">
-                    <div class="flex gap-2 mb-4">
-                        <input type="url" id="material-url" placeholder="https://..." class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm">
-                        <button onclick="fetchArticleText(event)" class="bg-indigo-100 text-indigo-700 px-4 rounded-xl font-bold hover:bg-indigo-200 text-sm whitespace-nowrap">Витягнути текст</button>
+                    <!-- New Article Search -->
+                    <div class="mb-2 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                        <label class="text-xs font-bold text-indigo-800 uppercase block mb-2">🔍 Пошук статей онлайн</label>
+                        <div class="flex gap-2 mb-2">
+                            <select id="article-search-source" class="p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm bg-white text-slate-700 font-bold flex-shrink-0">
+                                <option value="wiki-en">Wikipedia (EN)</option>
+                            </select>
+                            <input type="text" id="article-search-query" placeholder="Введіть тему (напр. 'SpaceX')..." class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm font-medium" onkeydown="if(event.key==='Enter') searchArticles()">
+                            <button onclick="searchArticles()" class="bg-indigo-600 text-white px-5 rounded-xl font-bold hover:bg-indigo-700 text-sm whitespace-nowrap shadow-sm transition">Знайти</button>
+                        </div>
+                        <div id="article-search-results" class="max-h-56 overflow-y-auto custom-scroll space-y-2 hidden bg-white rounded-xl border border-slate-200 p-2 shadow-inner"></div>
                     </div>
-                    <p class="text-xs text-slate-500 mb-4">Розумний екстрактор витягне чистий текст статті, відкинувши меню та рекламу.</p>
+
+                    <div class="flex items-center gap-4 my-5 opacity-70"><div class="flex-1 h-px bg-slate-300"></div><span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Або витягнути текст із посилання</span><div class="flex-1 h-px bg-slate-300"></div></div>
+
+                    <!-- Existing URL Extractor -->
+                    <div class="flex gap-2 mb-2">
+                        <input type="url" id="material-url" placeholder="https://посилання-на-статтю.com" class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm">
+                        <button onclick="fetchArticleText(event)" class="bg-slate-100 text-slate-700 border border-slate-200 px-4 rounded-xl font-bold hover:bg-slate-200 text-sm whitespace-nowrap shadow-sm">Витягнути текст</button>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-4 px-1">Розумний екстрактор витягне чистий текст статті, відкинувши меню та рекламу.</p>
                 </div>
 
                 <!-- Tab: YouTube -->
                 <div id="mode-yt-area" class="hidden mb-4">
-                    <div class="flex gap-2 mb-3">
-                        <input type="url" id="material-yt-url" placeholder="Посилання на YouTube" class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm">
-                        <button onclick="loadYTIframeForPreview()" class="bg-indigo-100 text-indigo-700 px-4 rounded-xl font-bold hover:bg-indigo-200 text-sm whitespace-nowrap">Додати відео</button>
+                    <!-- New YouTube Search -->
+                    <div class="mb-4 bg-red-50 p-4 rounded-xl border border-red-100 shadow-sm">
+                        <label class="text-xs font-bold text-red-800 uppercase block mb-2 flex items-center gap-1.5"><span class="text-base">📺</span> Пошук відео на YouTube</label>
+                        <div class="flex gap-2 mb-2">
+                            <input type="text" id="yt-search-query" placeholder="Назва відео або тема..." class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-red-500 text-sm font-medium" onkeydown="if(event.key==='Enter') searchYouTube()">
+                            <button onclick="searchYouTube()" class="bg-red-600 text-white px-5 rounded-xl font-bold hover:bg-red-700 text-sm whitespace-nowrap shadow-sm transition">Знайти</button>
+                        </div>
+                        <div id="yt-search-results" class="max-h-64 overflow-y-auto custom-scroll space-y-2 hidden bg-white rounded-lg p-2 border border-slate-200 shadow-inner"></div>
                     </div>
+
+                    <div class="flex items-center gap-4 my-5 opacity-70"><div class="flex-1 h-px bg-slate-300"></div><span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Або вставити посилання вручну</span><div class="flex-1 h-px bg-slate-300"></div></div>
+
+                    <!-- Existing YT URL -->
+                    <div class="flex gap-2 mb-3">
+                        <input type="url" id="material-yt-url" placeholder="Пряме посилання на YouTube" class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm">
+                        <button onclick="loadYTIframeForPreview()" class="bg-slate-100 text-slate-700 border border-slate-200 px-4 rounded-xl font-bold hover:bg-slate-200 text-sm whitespace-nowrap shadow-sm">Додати відео</button>
+                    </div>
+                    
                     <div id="yt-preview-container" class="w-full aspect-video bg-black rounded-xl mb-3 hidden overflow-hidden shadow-inner flex items-center justify-center text-slate-500 text-sm"></div>
                     
                     <div id="srt-drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center transition-colors hover:border-indigo-500 bg-slate-50 mt-4 cursor-pointer relative" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" onclick="document.getElementById('yt-sub-file').click()">
@@ -334,7 +364,7 @@
                     <textarea id="yt-sub-raw" rows="6" placeholder="1\n00:00:05,000 --> 00:00:08,000\nHello, world!" class="w-full p-3 mt-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-xs font-mono custom-scroll hidden"></textarea>
                 </div>
 
-                <div class="flex gap-3 mt-4">
+                <div class="flex gap-3 mt-4 pt-4 border-t border-slate-100">
                     <button onclick="saveMaterial()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-lg shadow-sm active:scale-95 transition">Зберегти матеріал</button>
                     <button onclick="cancelAddMaterial()" class="px-6 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold border border-slate-200 active:scale-95 transition">Скасувати</button>
                 </div>
@@ -530,7 +560,7 @@
                 <span class="flex items-center gap-1">📖 Англійське тлумачення</span>
                 <span id="inline-dict-arrow">▼</span>
             </button>
-            <div id="inline-dict-content" class="hidden mt-2 text-slate-600 max-h-40 overflow-y-auto custom-scroll space-y-1.5 text-left"></div>
+            <div id="inline-dict-content" class="hidden mt-2 text-slate-600 text-[13px] max-h-48 overflow-y-auto custom-scroll space-y-1.5 text-left"></div>
         </div>
     </div>
 
@@ -1045,6 +1075,10 @@
             currentYtId = ""; 
             document.getElementById('yt-sub-raw').value = ''; 
             document.getElementById('yt-sub-raw').classList.add('hidden'); 
+            document.getElementById('article-search-results').classList.add('hidden');
+            document.getElementById('yt-search-results').classList.add('hidden');
+            document.getElementById('article-search-query').value = '';
+            document.getElementById('yt-search-query').value = '';
         };
         
         window.setAddMode = (mode) => {
@@ -1091,6 +1125,114 @@
             } finally {
                 if (btn) btn.textContent = originalBtnText;
             }
+        };
+
+        // ВІКІПЕДІЯ ПОШУК (НОВЕ)
+        window.searchArticles = async () => {
+            const query = document.getElementById('article-search-query').value.trim();
+            if (!query) return;
+            const resContainer = document.getElementById('article-search-results');
+            resContainer.innerHTML = '<div class="text-center text-sm text-slate-500 p-3"><div class="loader inline-block align-middle mr-2 w-4 h-4"></div>Шукаємо у Вікіпедії...</div>';
+            resContainer.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`);
+                const data = await res.json();
+                if (data.query && data.query.search.length > 0) {
+                    resContainer.innerHTML = data.query.search.map(item => `
+                        <div class="p-3 bg-white border border-slate-100 rounded-lg hover:border-indigo-400 cursor-pointer transition shadow-sm group" onclick="selectWikiArticle('${item.title.replace(/'/g, "\\'")}')">
+                            <h4 class="font-bold text-indigo-700 text-sm group-hover:text-indigo-600">${item.title}</h4>
+                            <p class="text-xs text-slate-500 mt-1 line-clamp-2">${item.snippet.replace(/<\/?[^>]+(>|$)/g, "")}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    resContainer.innerHTML = '<div class="text-center text-sm text-slate-500 p-2 font-bold">Нічого не знайдено.</div>';
+                }
+            } catch (err) {
+                resContainer.innerHTML = '<div class="text-center text-sm text-rose-500 p-2 font-bold">Помилка пошуку.</div>';
+            }
+        };
+
+        window.selectWikiArticle = async (title) => {
+            window.showModal("Завантажуємо статтю з Вікіпедії...");
+            try {
+                const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext&titles=${encodeURIComponent(title)}&format=json&origin=*`);
+                const data = await res.json();
+                const pages = data.query.pages;
+                const pageId = Object.keys(pages)[0];
+                if (pageId !== "-1") {
+                    document.getElementById('material-title').value = pages[pageId].title;
+                    document.getElementById('material-content').value = pages[pageId].extract;
+                    setAddMode('text');
+                    document.getElementById('custom-modal').classList.add('hidden'); 
+                    window.showModal("Статтю успішно завантажено!");
+                }
+            } catch(err) {
+                window.showModal("Помилка завантаження статті.");
+            }
+        };
+
+        // YOUTUBE ПОШУК (НОВЕ)
+        window.searchYouTube = async () => {
+            const query = document.getElementById('yt-search-query').value.trim();
+            if (!query) return;
+            const resContainer = document.getElementById('yt-search-results');
+            resContainer.innerHTML = '<div class="text-center text-sm text-slate-500 p-3"><div class="loader inline-block align-middle mr-2 w-4 h-4"></div>Шукаємо на YouTube...</div>';
+            resContainer.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`https://youtube-proxy.v09052014.workers.dev/?q=${encodeURIComponent(query)}`, {
+                    method: "GET"
+                });
+                if (!res.ok) throw new Error(`Помилка сервера: ${res.status}`);
+                const data = await res.json();
+                renderYTResults(data.items || [], resContainer);
+            } catch (err) {
+                console.error("Помилка пошуку YouTube:", err);
+                resContainer.innerHTML = '<div class="text-center text-sm text-rose-500 p-3 font-bold">Помилка пошуку відео. Спробуйте вставити пряме посилання нижче.</div>';
+            }
+        };
+
+        function renderYTResults(items, resContainer) {
+            // Фільтруємо лише відео (відкидаємо канали та плейлисти)
+            const videos = items.filter(item => item.id && item.id.videoId).slice(0, 10);
+            
+            if (videos.length > 0) {
+                resContainer.innerHTML = videos.map(v => {
+                    const vidId = v.id.videoId;
+                    const title = v.snippet.title;
+                    const uploaderName = v.snippet.channelTitle;
+                    // Беремо середню або стандартну якість прев'ю
+                    const thumbnail = v.snippet.thumbnails?.medium?.url || v.snippet.thumbnails?.default?.url;
+                    
+                    return `
+                    <div class="flex gap-3 p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-red-300 cursor-pointer transition items-start group" onclick="selectYTVideo('${vidId}', '${title.replace(/'/g, "\\'")}')">
+                        <div class="relative flex-shrink-0">
+                            <img src="${thumbnail}" class="w-28 h-16 object-cover rounded shadow-sm bg-black">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-bold text-slate-800 text-sm line-clamp-2 group-hover:text-red-600 transition leading-tight">${title}</h4>
+                            <p class="text-[10px] text-slate-500 mt-1 font-bold truncate">${uploaderName}</p>
+                        </div>
+                    </div>
+                `}).join('');
+            } else {
+                resContainer.innerHTML = '<div class="text-center text-sm text-slate-500 p-3 font-bold">Нічого не знайдено за цим запитом.</div>';
+            }
+        }
+
+        window.selectYTVideo = (videoId, title) => {
+            if(!videoId) return;
+            const urlInput = document.getElementById('material-yt-url');
+            urlInput.value = `https://www.youtube.com/watch?v=${videoId}`;
+            
+            if (!document.getElementById('material-title').value.trim()) {
+                document.getElementById('material-title').value = title;
+            }
+            
+            loadYTIframeForPreview();
+            document.getElementById('yt-search-results').classList.add('hidden'); 
+            window.showModal("Відео вибрано! Тепер ви можете додати субтитри (перетягніть .srt або вставте текст).");
         };
 
         let currentYtId = "";
@@ -1417,7 +1559,7 @@
             if (currentMaterial.isRead) {
                 return `<div class="mt-8 text-center p-4 bg-slate-100 rounded-xl border border-slate-200 text-slate-500 font-bold flex items-center justify-center gap-2 shadow-sm"><span>✅</span> Матеріал опрацьовано</div>`;
             }
-            return `<button onclick="markCurrentAsRead()" class="mt-10 w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-bold font-sans text-lg shadow-md transition flex justify-center items-center gap-2 active:scale-95"><span>✅Позначити матеріал як опрацьований</span></button>`;
+            return `<button onclick="markCurrentAsRead()" class="mt-10 w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-bold font-sans text-lg shadow-md transition flex justify-center items-center gap-2 active:scale-95"><span>✅ Позначити матеріал як опрацьований</span></button>`;
         }
 
         function renderReaderContent() {
@@ -1829,7 +1971,7 @@
                 
                 if(currentStageIndex + 1 < stages.length) {
                     bsCurrentStage = stages[currentStageIndex + 1];
-                    bsCurrentWordIdx = 0; // ВАЖЛИВО: Скидаємо індекс на початок для нової вправи!
+                    bsCurrentWordIdx = 0; 
                 } else {
                     return finishBrainstorm();
                 }
@@ -1895,7 +2037,7 @@
                     let updatedScores = [...sprintHighScores];
                     updatedScores.push({ score: sprintScore, date: Date.now() });
                     updatedScores.sort((a, b) => b.score - a.score);
-                    updatedScores = updatedScores.slice(0, 3); // Залишаємо Топ-3
+                    updatedScores = updatedScores.slice(0, 3); 
                     
                     const statsDocRef = doc(db, 'users', activeUid, 'stats', 'sprint');
                     await setDoc(statsDocRef, { topScores: updatedScores });
