@@ -2196,7 +2196,7 @@
                     html += `
                         <li class="text-center text-slate-300 font-black py-0.5 leading-none mt-1">...</li>
                         <li class="flex justify-between items-center py-1.5 px-3 bg-indigo-100/50 rounded-lg mt-1 border border-indigo-100">
-                            <span class="font-bold text-indigo-700 text-sm">Ваш результат (№${displayIndex}):</span>
+                            <span class="font-bold text-indigo-700 text-sm flex items-center gap-1"><span class="text-slate-400 font-medium opacity-50">#</span>${displayIndex}</span>
                             <span class="font-bold text-indigo-700 text-sm">${sprintScore} балів</span>
                         </li>
                     `;
@@ -2232,7 +2232,7 @@
                     </div>
                     <div class="flex flex-col items-end">
                         <span class="text-indigo-600 font-bold text-sm">${w.translation}</span>
-                        ${activeSessionMode === 'sprint' ? `<span class="text-[10px] font-bold ${w.failed ? 'text-rose-500' : 'text-emerald-500'} uppercase mt-0.5">${w.failed ? '❌ Помилка' : '✅ Успішно'}</span>` : ''}
+                        ${activeSessionMode === 'sprint' ? `<span class="text-[12px] font-bold ${w.failed ? 'text-rose-500' : 'text-emerald-500'} mt-0.5">${w.failed ? '❌' : '✅'}</span>` : ''}
                     </div>
                 </div>`;
             }).join('');
