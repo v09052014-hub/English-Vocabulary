@@ -7,26 +7,32 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { padding-bottom: 140px; -webkit-tap-highlight-color: transparent; }
-        .sticky-header { position: sticky; top: 0; z-index: 60; }
-        .sticky-nav { position: sticky; top: 60px; z-index: 50; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(5px); }
+        
+        /* Smooth scrolling transitions for headers */
+        header { position: sticky; top: 0px; z-index: 60; transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sticky-nav { position: sticky; top: 60px; z-index: 50; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(5px); transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        #reader-sticky-bar { position: sticky; top: 0px; z-index: 70; transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(248, 250, 252, 0.98); backdrop-filter: blur(5px); }
+
         .fade-in { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Reader Styles */
-        .text-reader { font-family: 'Georgia', serif; font-size: 1.125rem; line-height: 1.8; color: #334155; }
+        /* Reader Styles - Baseline, dynamically overridden by JS */
+        .text-reader { line-height: 1.8; color: #334155; transition: font-size 0.2s, font-family 0.2s; }
+        @media (max-width: 640px) {
+            .text-reader { font-size: 1rem !important; }
+            #reader-content-wrapper { padding-left: 0.75rem; padding-right: 0.75rem; }
+        }
+        
         .word-clickable { cursor: pointer; border-radius: 4px; transition: all 0.2s; padding: 0 2px; border-bottom: 1px dotted transparent; }
         .word-clickable:hover { background-color: #e0e7ff; color: #4338ca; border-bottom-color: #4338ca; }
         
-        /* Saved Word Class */
         .word-saved { background-color: #d1fae5; padding: 2px 4px; border-radius: 4px; border: none; font-weight: inherit; color: inherit; }
         .word-saved:hover { background-color: #bbf7d0; border: none; }
         
-        /* YouTube Subs & PiP */
         .yt-sub-line { transition: all 0.2s ease; border-radius: 4px; padding: 0 4px; display: inline; cursor: pointer; line-height: 2; border-bottom: 2px solid transparent; }
         .yt-sub-line:hover { background-color: #f8fafc; border-bottom-color: #cbd5e1; }
         .yt-sub-line.active-sub { background-color: #eef2ff; border-bottom-color: #4f46e5; color: #1e1b4b; font-weight: 500; box-shadow: inset 0 -2px 0 #4f46e5; }
         
-        /* PiP Mode Class */
         .yt-pip-mode {
             position: fixed !important;
             bottom: 20px;
@@ -42,7 +48,6 @@
             .yt-pip-mode { width: 250px !important; height: 140px !important; bottom: 80px; right: 10px; }
         }
 
-        /* Constructor Styles */
         .letter-slot { min-width: 2.2rem; min-height: 2.8rem; border-bottom: 3px solid #cbd5e1; transition: all 0.2s; }
         .letter-tile { transition: transform 0.1s; cursor: pointer; }
         .letter-tile:active { transform: scale(0.9); }
@@ -52,7 +57,6 @@
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-        /* Context inline input */
         .inline-context-input {
             display: inline-block;
             width: 120px;
@@ -72,7 +76,6 @@
         .inline-context-input.correct { border-bottom-color: #10b981; color: #10b981; }
         .inline-context-input.wrong { border-bottom-color: #f43f5e; color: #f43f5e; }
 
-        /* Crossword Column Layout Styles */
         .grid-cols-15 { grid-template-columns: repeat(15, minmax(0, 1fr)); }
 
         @keyframes cw-shake {
@@ -88,7 +91,6 @@
         Підключення...
     </div>
 
-    <!-- Modal: Alert -->
     <div id="custom-modal" class="hidden fixed inset-0 z-[200] bg-slate-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center">
             <p id="modal-text" class="text-slate-800 font-semibold mb-6 text-lg"></p>
@@ -137,9 +139,9 @@
         </div>
     </div>
 
-    <!-- Modal: Edit Material -->
+    <!-- Modal: Edit Material (INCREASED SIZE) -->
     <div id="edit-material-modal" class="hidden fixed inset-0 z-[160] bg-slate-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-lg w-full relative flex flex-col max-h-[90vh]">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-4xl w-full relative flex flex-col h-[85vh] max-h-[90vh]">
             <button onclick="closeEditMaterialModal()" class="absolute top-4 right-5 text-slate-400 hover:text-slate-700 font-bold text-2xl">&times;</button>
             <h3 class="text-xl font-bold text-slate-800 mb-4">Редагувати матеріал</h3>
             
@@ -206,7 +208,7 @@
         </div>
     </div>
 
-    <header class="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center sticky-header shadow-sm h-[60px]">
+    <header class="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center bg-white shadow-sm h-[60px]">
         <h1 class="font-bold text-indigo-600 text-xl tracking-tight flex items-center gap-2">
             <span class="text-2xl">🌌</span> LinguaSpace
         </h1>
@@ -223,11 +225,11 @@
         </div>
     </nav>
 
-    <main class="max-w-3xl mx-auto px-4 pt-3 sm:pt-5 transition-all duration-300">
+    <main class="max-w-4xl mx-auto px-2 sm:px-4 pt-3 sm:pt-5 transition-all duration-300">
         
         <!-- ================= СЛОВНИК ================= -->
         <section id="view-dictionary" class="fade-in block">
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
+            <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 max-w-3xl mx-auto">
                 <div class="flex flex-col gap-3">
                     <div class="flex flex-col sm:flex-row gap-3 relative">
                         <div class="flex-1 relative">
@@ -247,33 +249,35 @@
                 </div>
             </div>
 
-            <!-- Фільтри Словника -->
-            <div class="flex justify-between items-center mb-4 px-1">
-                <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">Словник: <span id="word-count" class="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">0</span></span>
-                <div class="flex gap-2">
-                    <button onclick="openBulkModal()" class="text-sm font-bold bg-white shadow-sm border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition flex items-center gap-1">📥 Імпорт</button>
-                    <button onclick="exportWordsJSON()" class="text-sm font-bold bg-white shadow-sm border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition flex items-center gap-1">⚙️ Експорт</button>
+            <div class="max-w-3xl mx-auto">
+                <div class="flex justify-between items-center mb-4 px-1">
+                    <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">Словник: <span id="word-count" class="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">0</span></span>
+                    <div class="flex gap-2">
+                        <button onclick="openBulkModal()" class="text-sm font-bold bg-white shadow-sm border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition flex items-center gap-1">📥 Імпорт</button>
+                        <button onclick="exportWordsJSON()" class="text-sm font-bold bg-white shadow-sm border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition flex items-center gap-1">⚙️ Експорт</button>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 overflow-x-auto custom-scroll pb-2 mb-4" id="dict-filters">
+                    <button onclick="setDictFilter('all')" id="filter-btn-all" class="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold bg-slate-800 text-white shadow-sm transition">Усі слова</button>
+                    <button onclick="setDictFilter('manual')" id="filter-btn-manual" class="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition">Словник</button>
+                    <button onclick="setDictFilter('import')" id="filter-btn-import" class="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition">Імпорт</button>
+                    <button onclick="setDictFilter('materials')" id="filter-btn-materials" class="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition flex items-center gap-1">📁 Матеріали</button>
+                </div>
+                
+                <div id="dict-back-btn-container" class="hidden mb-4">
+                    <button onclick="setDictFilter('materials')" class="text-sm text-indigo-600 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1">
+                        ← Назад до папок
+                    </button>
                 </div>
             </div>
 
-            <div class="flex gap-2 overflow-x-auto custom-scroll pb-2 mb-4" id="dict-filters">
-                <button onclick="setDictFilter('all')" id="filter-btn-all" class="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold bg-slate-800 text-white shadow-sm transition">Усі слова</button>
-                <button onclick="setDictFilter('manual')" id="filter-btn-manual" class="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition">Словник</button>
-                <button onclick="setDictFilter('import')" id="filter-btn-import" class="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition">Імпорт</button>
-                <button onclick="setDictFilter('materials')" id="filter-btn-materials" class="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition flex items-center gap-1">📁 Матеріали</button>
-            </div>
-            
-            <div id="dict-back-btn-container" class="hidden mb-4">
-                <button onclick="setDictFilter('materials')" class="text-sm text-indigo-600 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1">
-                    ← Назад до папок
-                </button>
-            </div>
-
-            <div id="words-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+            <!-- Changed to grid-cols-2 for mobile -->
+            <div id="words-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 w-full"></div>
         </section>
 
         <!-- ================= БІБЛІОТЕКА ================= -->
-        <section id="view-library" class="fade-in hidden">
+        <section id="view-library" class="fade-in hidden max-w-3xl mx-auto">
             <!-- List Mode -->
             <div id="library-list-view" class="block">
                 <button onclick="showAddTextForm()" class="w-full bg-white border-2 border-dashed border-indigo-300 text-indigo-600 font-bold py-5 rounded-2xl mb-5 hover:bg-indigo-50 transition shadow-sm text-lg flex items-center justify-center gap-2">
@@ -281,7 +285,6 @@
                 </button>
                 <div id="materials-grid" class="space-y-4"></div>
                 
-                <!-- Пагінація бібліотеки -->
                 <div id="library-pagination" class="flex justify-between items-center mt-6 pt-4 border-t border-slate-200 hidden">
                     <button onclick="changeLibraryPage(-1)" id="btn-lib-prev" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 disabled:opacity-50 transition flex items-center gap-1">← Назад</button>
                     <span id="lib-page-info" class="text-sm font-bold text-slate-500">Сторінка 1 з 1</span>
@@ -290,11 +293,15 @@
             </div>
 
             <!-- Add Mode -->
-            <div id="library-add-view" class="hidden bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                <div class="flex gap-2 mb-4 border-b border-slate-100 pb-2">
-                    <button onclick="setAddMode('text')" id="tab-add-text" class="px-4 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-lg text-sm transition">Текст</button>
-                    <button onclick="setAddMode('url')" id="tab-add-url" class="px-4 py-2 text-slate-500 font-bold rounded-lg hover:bg-slate-50 text-sm transition">Стаття (URL / Пошук)</button>
-                    <button onclick="setAddMode('yt')" id="tab-add-yt" class="px-4 py-2 text-slate-500 font-bold rounded-lg hover:bg-slate-50 text-sm transition">YouTube + Субтитри</button>
+            <div id="library-add-view" class="hidden bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex flex-wrap gap-2 mb-4 border-b border-slate-100 pb-2">
+                    <button onclick="setAddMode('text')" id="tab-add-text" class="px-3 sm:px-4 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-lg text-sm transition">Текст</button>
+                    <button onclick="setAddMode('url')" id="tab-add-url" class="px-3 sm:px-4 py-2 text-slate-500 font-bold rounded-lg hover:bg-slate-50 text-sm transition flex items-center gap-1">
+                        <svg viewBox="0 0 50 50" class="w-4 h-4 fill-current"><path d="M25 0C11.193 0 0 11.193 0 25s11.193 25 25 25 25-11.193 25-25S38.807 0 25 0zm0 47.917C12.365 47.917 2.083 37.635 2.083 25S12.365 2.083 25 2.083 47.917 12.365 47.917 25 37.635 47.917 25 47.917zm-4.708-14.542l-5.667-16h2.958l4.125 12.542 4.083-12.542h2.917l4.083 12.542 4.125-12.542h2.958l-5.667 16h-3.042l-3.958-11.833-3.958 11.833h-3.042z"/></svg> Стаття (URL)
+                    </button>
+                    <button onclick="setAddMode('yt')" id="tab-add-yt" class="px-3 sm:px-4 py-2 text-slate-500 font-bold rounded-lg hover:bg-slate-50 text-sm transition flex items-center gap-1">
+                        <svg viewBox="0 0 24 24" class="w-4 h-4 text-red-500 fill-current"><path d="M21.582 6.186a2.665 2.665 0 0 0-1.875-1.884C18.053 3.86 12 3.86 12 3.86s-6.053 0-7.707.442a2.665 2.665 0 0 0-1.875 1.884C1.97 7.85 1.97 12 1.97 12s0 4.15.448 5.814a2.665 2.665 0 0 0 1.875 1.884C5.947 20.14 12 20.14 12 20.14s6.053 0 7.707-.442a2.665 2.665 0 0 0 1.875-1.884C22.03 16.15 22.03 12 22.03 12s0-4.15-.448-5.814zM9.993 15.48V8.52l6.561 3.48-6.561 3.48z"/></svg> YouTube
+                    </button>
                 </div>
 
                 <input type="text" id="material-title" placeholder="Назва матеріалу" class="w-full p-2 mb-4 border-b-2 border-slate-200 focus:border-indigo-500 outline-none font-bold text-xl text-slate-800 bg-transparent">
@@ -304,54 +311,59 @@
                     <textarea id="material-content" rows="8" class="w-full p-4 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-base mb-4 resize-none leading-relaxed custom-scroll" placeholder="Оригінальний текст (або скрипт відео)..."></textarea>
                 </div>
 
-                <!-- Tab: URL -->
+                <!-- Tab: URL (Wikipedia / News) -->
                 <div id="mode-url-area" class="hidden">
-                    <!-- New Article Search -->
-                    <div class="mb-2 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
-                        <label class="text-xs font-bold text-indigo-800 uppercase block mb-2">🔍 Пошук статей онлайн</label>
-                        <div class="flex gap-2 mb-2">
-                            <select id="article-search-source" class="p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm bg-white text-slate-700 font-bold flex-shrink-0">
+                    <div class="mb-2 bg-indigo-50/50 p-3 sm:p-4 rounded-xl border border-indigo-100">
+                        <label class="text-xs font-bold text-indigo-800 uppercase mb-2 flex items-center gap-1.5">
+                            <svg viewBox="0 0 50 50" class="w-5 h-5 fill-current"><path d="M25 0C11.193 0 0 11.193 0 25s11.193 25 25 25 25-11.193 25-25S38.807 0 25 0zm0 47.917C12.365 47.917 2.083 37.635 2.083 25S12.365 2.083 25 2.083 47.917 12.365 47.917 25 37.635 47.917 25 47.917zm-4.708-14.542l-5.667-16h2.958l4.125 12.542 4.083-12.542h2.917l4.083 12.542 4.125-12.542h2.958l-5.667 16h-3.042l-3.958-11.833-3.958 11.833h-3.042z"/></svg> 
+                            Пошук статей
+                        </label>
+                        <div class="flex flex-col sm:flex-row gap-2 mb-2 w-full">
+                            <select id="article-search-source" class="p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm bg-white text-slate-700 font-bold w-full sm:w-auto flex-shrink-0">
                                 <option value="wiki-en">Wikipedia (EN)</option>
+                                <option value="news">News API</option>
                             </select>
-                            <input type="text" id="article-search-query" placeholder="Введіть тему (напр. 'SpaceX')..." class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm font-medium" onkeydown="if(event.key==='Enter') searchArticles()">
-                            <button onclick="searchArticles()" class="bg-indigo-600 text-white px-5 rounded-xl font-bold hover:bg-indigo-700 text-sm whitespace-nowrap shadow-sm transition">Знайти</button>
+                            <div class="flex flex-col sm:flex-row gap-2 w-full flex-1 min-w-0">
+                                <input type="text" id="article-search-query" placeholder="Введіть тему (напр. 'SpaceX')..." class="flex-1 min-w-0 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm font-medium" onkeydown="if(event.key==='Enter') searchArticles()">
+                                <button onclick="searchArticles()" class="bg-indigo-600 text-white px-4 sm:px-5 py-3 sm:py-0 rounded-xl font-bold hover:bg-indigo-700 text-sm whitespace-nowrap shadow-sm transition w-full sm:w-auto shrink-0">Знайти</button>
+                            </div>
                         </div>
-                        <div id="article-search-results" class="max-h-56 overflow-y-auto custom-scroll space-y-2 hidden bg-white rounded-xl border border-slate-200 p-2 shadow-inner"></div>
+                        <div id="article-search-results" class="max-h-96 overflow-y-auto custom-scroll space-y-2 hidden bg-white rounded-xl border border-slate-200 p-2 shadow-inner"></div>
                     </div>
 
-                    <div class="flex items-center gap-4 my-5 opacity-70"><div class="flex-1 h-px bg-slate-300"></div><span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Або витягнути текст із посилання</span><div class="flex-1 h-px bg-slate-300"></div></div>
+                    <div class="flex items-center gap-4 my-5 opacity-70"><div class="flex-1 h-px bg-slate-300"></div><span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Або витягнути текст із посилання</span><div class="flex-1 h-px bg-slate-300"></div></div>
 
-                    <!-- Existing URL Extractor -->
-                    <div class="flex gap-2 mb-2">
-                        <input type="url" id="material-url" placeholder="https://посилання-на-статтю.com" class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm">
-                        <button onclick="fetchArticleText(event)" class="bg-slate-100 text-slate-700 border border-slate-200 px-4 rounded-xl font-bold hover:bg-slate-200 text-sm whitespace-nowrap shadow-sm">Витягнути текст</button>
+                    <div class="flex flex-col sm:flex-row gap-2 mb-2 w-full">
+                        <input type="url" id="material-url" placeholder="https://example.com/article" class="flex-1 min-w-0 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm w-full">
+                        <button onclick="fetchArticleText(event)" class="bg-slate-100 text-slate-700 border border-slate-200 px-4 py-3 rounded-xl font-bold hover:bg-slate-200 text-sm whitespace-nowrap shadow-sm w-full sm:w-auto shrink-0">Витягнути текст</button>
                     </div>
                     <p class="text-xs text-slate-500 mb-4 px-1">Розумний екстрактор витягне чистий текст статті, відкинувши меню та рекламу.</p>
                 </div>
 
                 <!-- Tab: YouTube -->
                 <div id="mode-yt-area" class="hidden mb-4">
-                    <!-- New YouTube Search -->
-                    <div class="mb-4 bg-red-50 p-4 rounded-xl border border-red-100 shadow-sm">
-                        <label class="text-xs font-bold text-red-800 uppercase block mb-2 flex items-center gap-1.5"><span class="text-base">📺</span> Пошук відео на YouTube</label>
-                        <div class="flex gap-2 mb-2">
-                            <input type="text" id="yt-search-query" placeholder="Назва відео або тема..." class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-red-500 text-sm font-medium" onkeydown="if(event.key==='Enter') searchYouTube()">
-                            <button onclick="searchYouTube()" class="bg-red-600 text-white px-5 rounded-xl font-bold hover:bg-red-700 text-sm whitespace-nowrap shadow-sm transition">Знайти</button>
+                    <div class="mb-4 bg-red-50 p-3 sm:p-4 rounded-xl border border-red-100 shadow-sm w-full">
+                        <label class="text-xs font-bold text-red-800 uppercase mb-2 flex items-center gap-1.5">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5 text-red-500 fill-current"><path d="M21.582 6.186a2.665 2.665 0 0 0-1.875-1.884C18.053 3.86 12 3.86 12 3.86s-6.053 0-7.707.442a2.665 2.665 0 0 0-1.875 1.884C1.97 7.85 1.97 12 1.97 12s0 4.15.448 5.814a2.665 2.665 0 0 0 1.875 1.884C5.947 20.14 12 20.14 12 20.14s6.053 0 7.707-.442a2.665 2.665 0 0 0 1.875-1.884C22.03 16.15 22.03 12 22.03 12s0-4.15-.448-5.814zM9.993 15.48V8.52l6.561 3.48-6.561 3.48z"/></svg>
+                            Пошук відео
+                        </label>
+                        <div class="flex flex-col sm:flex-row gap-2 w-full mb-2">
+                            <input type="text" id="yt-search-query" placeholder="Назва відео або тема..." class="flex-1 min-w-0 p-3 border border-slate-300 rounded-xl outline-none focus:border-red-500 text-sm font-medium" onkeydown="if(event.key==='Enter') searchYouTube()">
+                            <button onclick="searchYouTube()" class="bg-red-600 text-white px-4 sm:px-5 py-3 sm:py-0 rounded-xl font-bold hover:bg-red-700 text-sm whitespace-nowrap shadow-sm transition w-full sm:w-auto shrink-0">Знайти</button>
                         </div>
-                        <div id="yt-search-results" class="max-h-64 overflow-y-auto custom-scroll space-y-2 hidden bg-white rounded-lg p-2 border border-slate-200 shadow-inner"></div>
+                        <div id="yt-search-results" class="max-h-96 overflow-y-auto custom-scroll space-y-2 hidden bg-white rounded-lg p-2 border border-slate-200 shadow-inner"></div>
                     </div>
 
-                    <div class="flex items-center gap-4 my-5 opacity-70"><div class="flex-1 h-px bg-slate-300"></div><span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Або вставити посилання вручну</span><div class="flex-1 h-px bg-slate-300"></div></div>
+                    <div class="flex items-center gap-4 my-5 opacity-70"><div class="flex-1 h-px bg-slate-300"></div><span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Або вставити посилання вручну</span><div class="flex-1 h-px bg-slate-300"></div></div>
 
-                    <!-- Existing YT URL -->
-                    <div class="flex gap-2 mb-3">
-                        <input type="url" id="material-yt-url" placeholder="Пряме посилання на YouTube" class="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm">
-                        <button onclick="loadYTIframeForPreview()" class="bg-slate-100 text-slate-700 border border-slate-200 px-4 rounded-xl font-bold hover:bg-slate-200 text-sm whitespace-nowrap shadow-sm">Додати відео</button>
+                    <div class="flex flex-col sm:flex-row gap-2 mb-3 w-full">
+                        <input type="url" id="material-yt-url" placeholder="Пряме посилання на YouTube" class="flex-1 min-w-0 p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 text-sm w-full">
+                        <button onclick="loadYTIframeForPreview()" class="bg-slate-100 text-slate-700 border border-slate-200 px-4 py-3 rounded-xl font-bold hover:bg-slate-200 text-sm whitespace-nowrap shadow-sm w-full sm:w-auto shrink-0">Додати відео</button>
                     </div>
                     
                     <div id="yt-preview-container" class="w-full aspect-video bg-black rounded-xl mb-3 hidden overflow-hidden shadow-inner flex items-center justify-center text-slate-500 text-sm"></div>
                     
-                    <div id="srt-drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center transition-colors hover:border-indigo-500 bg-slate-50 mt-4 cursor-pointer relative" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" onclick="document.getElementById('yt-sub-file').click()">
+                    <div id="srt-drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-6 sm:p-8 text-center transition-colors hover:border-indigo-500 bg-slate-50 mt-4 cursor-pointer relative" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" onclick="document.getElementById('yt-sub-file').click()">
                         <div class="text-4xl mb-2">📄</div>
                         <h4 class="font-bold text-slate-700 text-base">Перетягніть файл субтитрів (.srt)</h4>
                         <p class="text-xs text-slate-500 mt-1">або натисніть, щоб вибрати файл</p>
@@ -372,32 +384,57 @@
 
             <!-- Read Mode -->
             <div id="library-read-view" class="hidden relative">
-                <div class="flex items-center gap-3 mb-4 sticky top-[60px] bg-slate-50 z-[70] py-2">
-                    <button onclick="closeReader()" class="text-slate-600 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 font-bold flex items-center gap-1 active:scale-95 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg> Назад
-                    </button>
-                    <h2 id="reader-title" class="font-bold text-lg text-slate-800 truncate flex-1"></h2>
+                <div id="reader-sticky-bar" class="flex items-center justify-between mb-4 py-2 w-full rounded-b-xl shadow-sm px-2">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <button onclick="closeReader()" class="text-slate-600 bg-white px-3 sm:px-4 py-2 rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 font-bold flex items-center gap-1 active:scale-95 transition flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg> 
+                            <span class="hidden sm:inline">Назад</span>
+                        </button>
+                        <h2 id="reader-title" class="font-bold text-base sm:text-lg text-slate-800 truncate"></h2>
+                    </div>
+                    
+                    <!-- Added stopPropagation inside the font panel to avoid immediate closing -->
+                    <div class="relative flex-shrink-0 ml-2">
+                        <button onclick="toggleReaderSettings()" class="p-2 text-slate-500 hover:text-indigo-600 transition bg-white rounded-xl border border-slate-200 shadow-sm flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </button>
+                        <div id="reader-settings-panel" onclick="event.stopPropagation()" class="hidden absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 p-3 z-[150]">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-2">Розмір тексту</p>
+                            <div class="flex justify-between items-center mb-4 bg-slate-50 rounded-lg p-1 border border-slate-100">
+                                <button onclick="event.stopPropagation(); changeFontSize(-1)" class="px-4 py-1.5 font-bold text-slate-600 hover:text-indigo-600 hover:bg-white rounded shadow-sm transition">A-</button>
+                                <span id="font-size-display" class="text-sm font-bold text-slate-700">18px</span>
+                                <button onclick="event.stopPropagation(); changeFontSize(1)" class="px-4 py-1.5 font-bold text-slate-600 hover:text-indigo-600 hover:bg-white rounded shadow-sm transition">A+</button>
+                            </div>
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-2">Шрифт</p>
+                            <div class="flex flex-col gap-1">
+                                <button onclick="event.stopPropagation(); changeFontFamily('\'Georgia\', serif')" class="text-left text-sm px-3 py-2.5 rounded-lg hover:bg-indigo-50 font-serif font-bold text-slate-700 border border-transparent hover:border-indigo-100 transition">Georgia (Із засічками)</button>
+                                <button onclick="event.stopPropagation(); changeFontFamily('\'Inter\', sans-serif')" class="text-left text-sm px-3 py-2.5 rounded-lg hover:bg-indigo-50 font-sans font-bold text-slate-700 border border-transparent hover:border-indigo-100 transition">Inter (Без засічок)</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div id="reader-yt-wrapper" class="w-full aspect-video bg-black rounded-xl mb-4 hidden shadow-md overflow-hidden z-[100] transition-all duration-300">
                     <div id="reader-yt-player" class="w-full h-full"></div>
                 </div>
                 
-                <div id="reader-content-wrapper" class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 relative mb-4">
-                    <div id="reader-content" class="text-reader text-lg leading-[2]"></div>
+                <div id="reader-content-wrapper" class="bg-white px-2 py-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 relative mb-4 overflow-hidden">
+                    <div id="reader-content" class="text-reader" style="font-size: 18px; font-family: 'Georgia', serif;"></div>
                 </div>
 
-                <!-- Навігація читача сторінок -->
                 <div id="reader-pagination" class="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6">
-                    <button onclick="changeReaderPage(-1)" id="btn-reader-prev" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition">← Попередня сторінка</button>
-                    <span id="reader-page-info" class="text-sm font-bold text-slate-500">Сторінка 1 з 1</span>
-                    <button onclick="changeReaderPage(1)" id="btn-reader-next" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition">Наступна сторінка →</button>
+                    <button onclick="changeReaderPage(-1)" id="btn-reader-prev" class="px-3 sm:px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs sm:text-sm transition">← Назад</button>
+                    <span id="reader-page-info" class="text-xs sm:text-sm font-bold text-slate-500">Сторінка 1 з 1</span>
+                    <button onclick="changeReaderPage(1)" id="btn-reader-next" class="px-3 sm:px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs sm:text-sm transition">Вперед →</button>
                 </div>
             </div>
         </section>
 
         <!-- ================= ТРЕНУВАННЯ ================= -->
-        <section id="view-training" class="fade-in hidden">
+        <section id="view-training" class="fade-in hidden max-w-3xl mx-auto">
             <div id="train-hub-screen" class="block mt-4">
                 <div class="flex justify-between items-center mb-6 px-1">
                     <h2 class="text-2xl font-bold text-slate-800">Тренування</h2>
@@ -488,20 +525,15 @@
                 </div>
 
                 <div id="bs-workspace-layout" class="flex flex-col lg:flex-row gap-6 items-start justify-center w-full">
-                    
-                    <!-- Original Active Workspace Box -->
                     <div id="bs-main-card" class="bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100 text-center relative overflow-hidden flex flex-col min-h-[300px] w-full">
                         <div id="bs-interactive-area" class="flex-1 flex flex-col justify-center relative z-10 w-full"></div>
-                        
                         <div id="bs-feedback" class="mt-2 min-h-[28px] flex items-center justify-center font-bold text-lg relative z-10"></div>
                         
-                        <!-- Buttons placed right under interaction/feedback -->
                         <div class="mt-3 flex gap-3 relative z-10 w-full">
                             <button id="bs-btn-dont-know" onclick="markWordAsFailed()" class="flex-shrink-0 bg-slate-100 text-slate-500 hover:bg-slate-200 py-3 px-4 rounded-xl font-bold text-sm transition border border-slate-200 shadow-sm hidden">Не знаю<br>слово</button>
                             <button id="bs-btn-next" onclick="nextBrainstormStep()" class="flex-1 bg-slate-800 text-white py-3 rounded-xl font-bold text-lg hidden active:scale-95 shadow-md transition">Далі (Enter)</button>
                         </div>
 
-                        <!-- Image and context appear AT THE BOTTOM -->
                         <div id="bs-success-reveal" class="hidden mt-4 bg-indigo-50/50 p-3 rounded-xl flex flex-col sm:flex-row items-center gap-3 text-left border border-indigo-100 fade-in z-10">
                             <img id="bs-success-img" class="w-16 h-16 rounded-lg object-cover shadow-sm bg-slate-200 flex-shrink-0 mx-auto sm:mx-0">
                             <div class="text-center sm:text-left w-full">
@@ -511,8 +543,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- External Container for Clues (Sits beautifully on the slate gray background) -->
                     <div id="bs-external-clues" class="w-full lg:w-5/12 hidden transition-all"></div>
                 </div>
 
@@ -524,7 +554,7 @@
                 <div class="text-6xl mb-4">🏆</div>
                 <h2 class="text-2xl font-bold text-slate-800 mb-2">Завершено!</h2>
                 
-                <!-- Топ-3 Спринт результати (показується тільки у Спринті) -->
+                <!-- Топ-3 Спринт результати -->
                 <div id="sprint-leaderboard" class="hidden mb-6 bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-left max-w-sm mx-auto">
                     <h4 class="font-bold text-indigo-800 text-sm uppercase mb-2 flex items-center gap-1.5">⚡ Топ-3 Рекорди:</h4>
                     <ol id="sprint-leaderboard-list" class="space-y-1.5 text-slate-700 font-bold text-sm"></ol>
@@ -560,7 +590,7 @@
                 <span class="flex items-center gap-1">📖 Англійське тлумачення</span>
                 <span id="inline-dict-arrow">▼</span>
             </button>
-            <div id="inline-dict-content" class="hidden mt-2 text-slate-600 text-[13px] max-h-48 overflow-y-auto custom-scroll space-y-1.5 text-left"></div>
+            <div id="inline-dict-content" class="hidden mt-2 text-slate-600 text-[16px] max-h-48 overflow-y-auto custom-scroll space-y-1.5 text-left font-sans"></div>
         </div>
     </div>
 
@@ -601,23 +631,14 @@
         const SRS_INTERVALS = [0, 3 * 3600000, 12 * 3600000, 24 * 3600000, 72 * 3600000];
 
         const sessionEndAudio = new Audio("https://files.catbox.moe/lkmm5l.mp3");
-
-        // PROACTIVE PRELOADING FOR AUDIO BUFFERS
         const sprintCorrectAudio = new Audio("https://file.garden/alYiOQx5lAiBA0qQ/Correct%20Answer%20Light%20Sound.mp3");
-        sprintCorrectAudio.preload = "auto";
-        sprintCorrectAudio.load();
-
+        sprintCorrectAudio.preload = "auto"; sprintCorrectAudio.load();
         const sprintWrongAudio = new Audio("https://file.garden/alYiOQx5lAiBA0qQ/Wrong%20Answer%20Short%20Light%20Sound.mp3");
-        sprintWrongAudio.preload = "auto";
-        sprintWrongAudio.load();
-
+        sprintWrongAudio.preload = "auto"; sprintWrongAudio.load();
         const sprintCountdownAudio = new Audio("https://file.garden/alYiOQx5lAiBA0qQ/Three%20Short%20Sounds%20Countdown.mp3");
-        sprintCountdownAudio.preload = "auto";
-        sprintCountdownAudio.load();
-
+        sprintCountdownAudio.preload = "auto"; sprintCountdownAudio.load();
         const sprintGongAudio = new Audio("https://file.garden/alYiOQx5lAiBA0qQ/kave_msri-ding-sfx-330333.mp3");
-        sprintGongAudio.preload = "auto";
-        sprintGongAudio.load();
+        sprintGongAudio.preload = "auto"; sprintGongAudio.load();
 
         let app, auth, db;
         let activeUid = null;
@@ -628,14 +649,15 @@
         let currentDictFilter = 'all'; 
         let specificMaterialName = '';
 
-        // Пагінація бібліотеки
         let libraryCurrentPage = 1;
         const MATERIALS_PER_PAGE = 20;
 
-        // Пагінація читалки
         let readerCurrentPage = 1;
         let readerTotalPages = 1;
         let readerPages = [];
+        
+        let currentReaderFontSize = 18;
+        let currentReaderFontFamily = "'Georgia', serif";
 
         let sprintTimer = null;
         let sprintTimeLeft = 60;
@@ -644,6 +666,32 @@
         let sprintWordsStats = {};
         let currentSprintQ = null;
         let sprintHighScores = [];
+
+        let lastScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        window.addEventListener('scroll', function() {
+            let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            const header = document.querySelector('header');
+            const nav = document.querySelector('nav.sticky-nav');
+            const readerBar = document.querySelector('#reader-sticky-bar');
+            const isReadMode = !document.getElementById('library-read-view').classList.contains('hidden');
+            
+            if (currentScroll > lastScrollTop && currentScroll > 60) {
+                header.style.top = '-60px';
+                if(nav) nav.style.top = '0px';
+                
+                if (isReadMode && readerBar) {
+                    readerBar.style.top = '-100px'; 
+                    document.getElementById('reader-settings-panel').classList.add('hidden');
+                }
+            } else {
+                header.style.top = '0px';
+                if(nav) nav.style.top = '60px';
+                if (isReadMode && readerBar) {
+                    readerBar.style.top = '0px'; 
+                }
+            }
+            lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+        }, { passive: true });
 
         window.showModal = (text, confirmMode = false, onConfirm = null) => {
             document.getElementById('custom-modal').classList.remove('hidden');
@@ -709,7 +757,6 @@
                 renderMaterials();
             });
 
-            // Підписка на рекорди Спринту
             const statsDocRef = doc(db, 'users', activeUid, 'stats', 'sprint');
             onSnapshot(statsDocRef, (docSnap) => {
                 if (docSnap.exists()) {
@@ -916,7 +963,7 @@
                     const count = vocabulary.filter(w => w.source === src).length;
                     const escapedSrc = src.replace(/'/g, "\\'").replace(/"/g, "&quot;");
                     return `
-                    <div onclick="setDictMaterial('${escapedSrc}')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:border-indigo-400 hover:shadow-md transition flex items-center gap-4 group">
+                    <div onclick="setDictMaterial('${escapedSrc}')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:border-indigo-400 hover:shadow-md transition flex items-center gap-4 group col-span-full sm:col-span-1">
                         <div class="text-4xl">📁</div>
                         <div class="flex-1 min-w-0">
                             <h3 class="font-bold text-slate-800 text-lg truncate group-hover:text-indigo-600 transition">${src}</h3>
@@ -934,11 +981,11 @@
             if(filtered.length === 0) { grid.innerHTML = '<p class="text-slate-500 font-bold col-span-full">Немає слів у цій категорії.</p>'; return; }
 
             grid.innerHTML = filtered.map(item => `
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative group hover:shadow-md hover:border-indigo-300 transition h-48">
-                    <img src="${item.imageUrl}" class="w-full h-24 object-cover bg-slate-50 flex-shrink-0 border-b border-slate-100 cursor-pointer" onclick="openEditModal('${item.id}')" onerror="imgError(this)">
-                    <div class="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white cursor-pointer" onclick="openEditModal('${item.id}')">
-                        <strong class="text-slate-800 text-lg leading-tight truncate font-bold">${item.word}</strong>
-                        <span class="text-indigo-600 text-sm font-bold truncate">${item.translation}</span>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative group hover:shadow-md hover:border-indigo-300 transition h-40 sm:h-48">
+                    <img src="${item.imageUrl}" class="w-full h-20 sm:h-24 object-cover bg-slate-50 flex-shrink-0 border-b border-slate-100 cursor-pointer" onclick="openEditModal('${item.id}')" onerror="imgError(this)">
+                    <div class="p-2 sm:p-3 flex-1 flex flex-col justify-center min-w-0 bg-white cursor-pointer" onclick="openEditModal('${item.id}')">
+                        <strong class="text-slate-800 text-base sm:text-lg leading-tight truncate font-bold">${item.word}</strong>
+                        <span class="text-indigo-600 text-xs sm:text-sm font-bold truncate">${item.translation}</span>
                     </div>
                     <div class="absolute top-2 left-2 bg-white rounded-full shadow-md p-1" onclick="showSrsStatus('${item.id}')">
                         ${getSrsSvg(item.srsLevel, true)}
@@ -1004,7 +1051,6 @@
                             c = p1.replace(/^["'«]|["'»]$/g, '');
                             const opts = await fetchTranslationOptions(w);
                             t = (opts && opts.length > 0) ? opts[0].text : "переклад";
-                            sprintWordsStats
                         } else {
                             t = p1;
                         }
@@ -1085,72 +1131,110 @@
             addMaterialMode = mode;
             ['text', 'url', 'yt'].forEach(m => {
                 document.getElementById(`mode-${m}-area`).classList.toggle('hidden', m !== mode);
-                document.getElementById(`tab-add-${m}`).className = m === mode ? 'px-4 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-lg text-sm transition' : 'px-4 py-2 text-slate-500 font-bold rounded-lg hover:bg-slate-50 text-sm transition';
+                const isActive = m === mode;
+                const btn = document.getElementById(`tab-add-${m}`);
+                if (isActive) {
+                    btn.className = 'px-3 sm:px-4 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-lg text-sm transition flex items-center gap-1';
+                } else {
+                    btn.className = 'px-3 sm:px-4 py-2 text-slate-500 font-bold rounded-lg hover:bg-slate-50 text-sm transition flex items-center gap-1';
+                }
             });
         };
 
-        function cleanMarkdownToPlainText(md) {
-            let txt = md.replace(/!\[.*?\]\(.*?\)/g, ''); 
-            txt = txt.replace(/\[([^\]]+)\]\(.*?\)/g, '$1'); 
-            txt = txt.replace(/[#*`_~>]/g, ''); 
-            txt = txt.replace(/^(?:Title|URL|Source|Markdown Content):.*$/gm, ''); 
-            return txt.replace(/\n{3,}/g, '\n\n').trim();
-        }
-
-        window.fetchArticleText = async (e) => {
-            const url = document.getElementById('material-url').value.trim(); if(!url) return;
-            const btn = e ? e.currentTarget : document.querySelector('#mode-url-area button');
-            const originalBtnText = btn ? btn.textContent : 'Витягнути текст';
-            if (btn) btn.textContent = 'Обробка...';
+        window.fetchArticleText = async (event) => {
+            if (event) event.preventDefault();
+            const urlInput = document.getElementById('material-url').value.trim();
+            if (!urlInput) return window.showModal("Введіть посилання!");
+            
+            const btn = document.querySelector('button[onclick="fetchArticleText(event)"]');
+            const origText = btn ? btn.textContent : "Витягнути текст";
+            if (btn) { btn.textContent = "Витягуємо..."; btn.disabled = true; }
             
             try {
-                const res = await fetch(`https://r.jina.ai/${encodeURIComponent(url)}`);
-                if(!res.ok) throw new Error("Jina failed");
-                const rawMarkdown = await res.text();
+                const res = await fetch("https://r.jina.ai/" + urlInput);
+                if (!res.ok) throw new Error("API Error");
+                const text = await res.text();
                 
-                let title = "Стаття з Інтернету";
-                const titleMatch = rawMarkdown.match(/^Title:\s*(.+)$/m);
-                if (titleMatch && titleMatch[1]) {
-                    title = titleMatch[1].trim();
-                }
-                document.getElementById('material-title').value = title;
-                const cleanText = cleanMarkdownToPlainText(rawMarkdown);
-                document.getElementById('material-content').value = cleanText;
-                
+                document.getElementById('material-title').value = "Стаття з Інтернету";
+                document.getElementById('material-content').value = text;
                 setAddMode('text');
-                window.showModal("Текст успішно витягнуто та очищено від сміття!");
-            } catch(err) {
-                console.error("Fetch err:", err);
-                window.showModal("Не вдалося витягнути текст. Спробуйте інше посилання або вставте текст вручну.");
+                document.getElementById('custom-modal').classList.add('hidden');
+                window.showModal("Текст успішно витягнуто!");
+            } catch (e) {
+                window.showModal("Помилка витягування тексту. Перевірте посилання.");
             } finally {
-                if (btn) btn.textContent = originalBtnText;
+                if (btn) { btn.textContent = origText; btn.disabled = false; }
             }
         };
 
-        // ВІКІПЕДІЯ ПОШУК (НОВЕ)
         window.searchArticles = async () => {
             const query = document.getElementById('article-search-query').value.trim();
+            const source = document.getElementById('article-search-source').value;
             if (!query) return;
+            
             const resContainer = document.getElementById('article-search-results');
-            resContainer.innerHTML = '<div class="text-center text-sm text-slate-500 p-3"><div class="loader inline-block align-middle mr-2 w-4 h-4"></div>Шукаємо у Вікіпедії...</div>';
-            resContainer.classList.remove('hidden');
+            
+            if (source === 'wiki-en') {
+                resContainer.innerHTML = '<div class="text-center text-sm text-slate-500 p-3"><div class="loader inline-block align-middle mr-2 w-4 h-4"></div>Шукаємо у Вікіпедії...</div>';
+                resContainer.classList.remove('hidden');
 
-            try {
-                const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`);
-                const data = await res.json();
-                if (data.query && data.query.search.length > 0) {
-                    resContainer.innerHTML = data.query.search.map(item => `
-                        <div class="p-3 bg-white border border-slate-100 rounded-lg hover:border-indigo-400 cursor-pointer transition shadow-sm group" onclick="selectWikiArticle('${item.title.replace(/'/g, "\\'")}')">
-                            <h4 class="font-bold text-indigo-700 text-sm group-hover:text-indigo-600">${item.title}</h4>
-                            <p class="text-xs text-slate-500 mt-1 line-clamp-2">${item.snippet.replace(/<\/?[^>]+(>|$)/g, "")}</p>
-                        </div>
-                    `).join('');
-                } else {
-                    resContainer.innerHTML = '<div class="text-center text-sm text-slate-500 p-2 font-bold">Нічого не знайдено.</div>';
+                try {
+                    const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*&srlimit=20`);
+                    const data = await res.json();
+                    if (data.query && data.query.search.length > 0) {
+                        resContainer.innerHTML = data.query.search.map(item => `
+                            <div class="flex gap-3 p-3 bg-white border border-slate-100 rounded-lg hover:border-indigo-400 cursor-pointer transition shadow-sm group items-start" onclick="selectWikiArticle('${item.title.replace(/'/g, "\\'")}')">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b3/Wikipedia%27s_W.svg" class="w-10 h-10 object-contain flex-shrink-0 opacity-80" alt="Wikipedia">
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-indigo-700 text-sm group-hover:text-indigo-600">${item.title}</h4>
+                                    <p class="text-xs text-slate-500 mt-1 line-clamp-2">${item.snippet.replace(/<\/?[^>]+(>|$)/g, "")}</p>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        resContainer.innerHTML = '<div class="text-center text-sm text-slate-500 p-2 font-bold">Нічого не знайдено.</div>';
+                    }
+                } catch (err) {
+                    resContainer.innerHTML = '<div class="text-center text-sm text-rose-500 p-2 font-bold">Помилка пошуку.</div>';
                 }
-            } catch (err) {
-                resContainer.innerHTML = '<div class="text-center text-sm text-rose-500 p-2 font-bold">Помилка пошуку.</div>';
+            } else if (source === 'news') {
+                resContainer.innerHTML = '<div class="text-center text-sm text-slate-500 p-3"><div class="loader inline-block align-middle mr-2 w-4 h-4"></div>Шукаємо новини...</div>';
+                resContainer.classList.remove('hidden');
+                
+                try {
+                    const url = `https://newsapi-proxy.v09052014.workers.dev/?q=${encodeURIComponent(query)}`;
+                    const response = await fetch(url, { method: "GET" });
+                    
+                    if (!response.ok) throw new Error(`Помилка сервера: ${response.status}`);
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === "ok" && data.articles && data.articles.length > 0) {
+                        resContainer.innerHTML = data.articles.map(item => `
+                            <div class="flex gap-3 p-3 bg-white border border-slate-100 rounded-lg hover:border-indigo-400 cursor-pointer transition shadow-sm group items-start" onclick="selectNewsArticle('${item.url}')">
+                                ${item.urlToImage ? `<img src="${item.urlToImage}" class="w-16 h-16 object-cover rounded bg-slate-100 flex-shrink-0" onerror="this.style.display='none'">` : ''}
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-indigo-700 text-sm group-hover:text-indigo-600 line-clamp-2">${item.title}</h4>
+                                    <p class="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">${item.source?.name || 'News'}</p>
+                                    <p class="text-xs text-slate-500 mt-1 line-clamp-2">${item.description || ''}</p>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        resContainer.innerHTML = '<div class="text-center text-sm text-slate-500 p-2 font-bold">Нічого не знайдено.</div>';
+                    }
+                } catch (err) {
+                    console.error("Помилка при отриманні новин:", err);
+                    resContainer.innerHTML = '<div class="text-center text-sm text-rose-500 p-2 font-bold">Помилка пошуку новин.</div>';
+                }
             }
+        };
+
+        window.selectNewsArticle = (url) => {
+            document.getElementById('material-url').value = url;
+            document.getElementById('article-search-results').classList.add('hidden');
+            window.showModal("Витягуємо текст новини...");
+            window.fetchArticleText();
         };
 
         window.selectWikiArticle = async (title) => {
@@ -1172,7 +1256,6 @@
             }
         };
 
-        // YOUTUBE ПОШУК (НОВЕ)
         window.searchYouTube = async () => {
             const query = document.getElementById('yt-search-query').value.trim();
             if (!query) return;
@@ -1180,35 +1263,32 @@
             resContainer.innerHTML = '<div class="text-center text-sm text-slate-500 p-3"><div class="loader inline-block align-middle mr-2 w-4 h-4"></div>Шукаємо на YouTube...</div>';
             resContainer.classList.remove('hidden');
 
+            const url = `https://youtube-proxy.v09052014.workers.dev/?q=${encodeURIComponent(query)}&maxResults=50&type=video`;
             try {
-                const res = await fetch(`https://youtube-proxy.v09052014.workers.dev/?q=${encodeURIComponent(query)}`, {
-                    method: "GET"
-                });
-                if (!res.ok) throw new Error(`Помилка сервера: ${res.status}`);
-                const data = await res.json();
+                const response = await fetch(url, { method: "GET" });
+                if (!response.ok) throw new Error(`Помилка сервера: ${response.status}`);
+                const data = await response.json();
                 renderYTResults(data.items || [], resContainer);
-            } catch (err) {
-                console.error("Помилка пошуку YouTube:", err);
+            } catch (error) {
+                console.error("Помилка пошуку YouTube:", error);
                 resContainer.innerHTML = '<div class="text-center text-sm text-rose-500 p-3 font-bold">Помилка пошуку відео. Спробуйте вставити пряме посилання нижче.</div>';
             }
         };
 
         function renderYTResults(items, resContainer) {
-            // Фільтруємо лише відео (відкидаємо канали та плейлисти)
-            const videos = items.filter(item => item.id && item.id.videoId).slice(0, 10);
-            
+            const videos = items.filter(item => item.id && item.id.videoId);
             if (videos.length > 0) {
                 resContainer.innerHTML = videos.map(v => {
                     const vidId = v.id.videoId;
                     const title = v.snippet.title;
                     const uploaderName = v.snippet.channelTitle;
-                    // Беремо середню або стандартну якість прев'ю
                     const thumbnail = v.snippet.thumbnails?.medium?.url || v.snippet.thumbnails?.default?.url;
                     
                     return `
                     <div class="flex gap-3 p-2 bg-slate-50 border border-slate-100 rounded-lg hover:border-red-300 cursor-pointer transition items-start group" onclick="selectYTVideo('${vidId}', '${title.replace(/'/g, "\\'")}')">
                         <div class="relative flex-shrink-0">
                             <img src="${thumbnail}" class="w-28 h-16 object-cover rounded shadow-sm bg-black">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" class="absolute inset-0 m-auto w-8 h-8 drop-shadow-md opacity-90 group-hover:scale-110 transition-transform">
                         </div>
                         <div class="flex-1 min-w-0">
                             <h4 class="font-bold text-slate-800 text-sm line-clamp-2 group-hover:text-red-600 transition leading-tight">${title}</h4>
@@ -1322,7 +1402,7 @@
                 const isRead = m.isRead;
                 const readDate = isRead && m.readAt ? new Date(m.readAt).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
                 return `
-                <div class="bg-white p-5 rounded-2xl shadow-sm border ${isRead ? 'border-slate-300 bg-slate-50' : 'border-slate-200'} cursor-pointer hover:border-indigo-400 transition flex justify-between items-center group relative overflow-hidden" onclick="openReader('${m.id}')">
+                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border ${isRead ? 'border-slate-300 bg-slate-50/70' : 'border-slate-200'} cursor-pointer hover:border-indigo-400 transition flex justify-between items-center group relative overflow-hidden" onclick="openReader('${m.id}')">
                     <div class="absolute left-0 top-0 bottom-0 w-1.5 ${m.ytId ? 'bg-red-500' : 'bg-indigo-500'} opacity-0 group-hover:opacity-100 transition"></div>
                     <div class="flex-1 truncate pl-2 ${isRead ? 'opacity-80' : ''}">
                         <h3 class="font-bold ${isRead ? 'text-slate-600' : 'text-slate-800'} truncate text-lg flex items-center gap-2">
@@ -1330,11 +1410,11 @@
                             ${m.ytId ? '<span class="text-red-500">📺</span>' : ''} ${m.title}
                         </h3>
                         <p class="text-sm text-slate-500 mt-1 truncate font-medium">
-                            ${isRead && readDate ? `<span class="text-slate-500 text-xs font-medium mr-2 border border-slate-200 bg-slate-100 px-1.5 py-0.5 rounded shadow-sm">Опрацьовано: ${readDate}</span>` : ''}
+                            ${isRead && readDate ? `<span class="text-slate-400 text-xs font-medium mr-2 bg-slate-100 px-1.5 py-0.5 rounded shadow-sm border border-slate-200">Опрацьовано: ${readDate}</span>` : ''}
                             ${m.content ? m.content.substring(0, 80) + '...' : 'Відео матеріал'}
                         </p>
                     </div>
-                    <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition ml-3">
+                    <div class="flex gap-1 sm:gap-2 opacity-0 group-hover:opacity-100 transition ml-2">
                         <button onclick="event.stopPropagation(); openEditMaterialModal('${m.id}')" class="text-slate-400 hover:text-indigo-600 p-2 text-xl font-bold bg-white rounded-full">✏️</button>
                         <button onclick="event.stopPropagation(); deleteMaterial('${m.id}')" class="text-slate-300 hover:text-rose-500 p-2 text-2xl font-bold bg-white rounded-full">&times;</button>
                     </div>
@@ -1348,7 +1428,6 @@
 
             document.getElementById('materials-grid').innerHTML = html;
 
-            // Рендер навігації
             const pagPanel = document.getElementById('library-pagination');
             if (materials.length > MATERIALS_PER_PAGE) {
                 pagPanel.classList.remove('hidden');
@@ -1376,8 +1455,6 @@
 
         let ytPlayer = null; let syncInterval = null;
 
-        // Розбиття великих матеріалів на сторінки (сторінка ~ 10 хвилин читання)
-        // Швидкість читання ~ 180 слів за хвилину. 10 хвилин = 1800 слів = ~10000 символів.
         function paginateTextMaterial(content, limit = 8000) {
             if (!content) return [""];
             const paragraphs = content.split('\n');
@@ -1429,6 +1506,32 @@
                 return [[]];
             }
         }
+        
+        window.toggleReaderSettings = () => {
+            document.getElementById('reader-settings-panel').classList.toggle('hidden');
+        };
+
+        window.changeFontSize = (delta) => {
+            currentReaderFontSize += delta;
+            if(currentReaderFontSize < 12) currentReaderFontSize = 12;
+            if(currentReaderFontSize > 32) currentReaderFontSize = 32;
+            applyReaderStyles();
+        };
+
+        window.changeFontFamily = (font) => {
+            currentReaderFontFamily = font;
+            applyReaderStyles();
+            toggleReaderSettings();
+        };
+
+        function applyReaderStyles() {
+            document.getElementById('font-size-display').textContent = `${currentReaderFontSize}px`;
+            const content = document.getElementById('reader-content');
+            if (content) {
+                content.style.fontSize = `${currentReaderFontSize}px`;
+                content.style.fontFamily = currentReaderFontFamily;
+            }
+        }
 
         window.openReader = (id) => {
             const m = materials.find(x => x.id === id); if(!m) return;
@@ -1439,7 +1542,6 @@
             document.getElementById('reader-title').textContent = m.title;
             const ytWrapper = document.getElementById('reader-yt-wrapper');
 
-            // Розрахунок пагінації тексту
             if (m.subtitles) {
                 readerPages = paginateSubtitlesMaterial(m.subtitles, 8000);
             } else {
@@ -1447,19 +1549,19 @@
             }
             readerTotalPages = readerPages.length;
             
-            // Відкриваємо останню сторінку, на якій користувач зупинився
             readerCurrentPage = m.lastPage && m.lastPage <= readerTotalPages ? m.lastPage : 1;
 
             if(m.ytId) {
                 ytWrapper.classList.remove('hidden'); ytWrapper.classList.remove('yt-pip-mode'); initYouTubePlayer(m.ytId);
                 window.addEventListener('scroll', handlePiPScroll, { passive: true }); 
             } else { ytWrapper.classList.add('hidden'); window.removeEventListener('scroll', handlePiPScroll); }
+            
+            applyReaderStyles();
             renderReaderContent();
             window.scrollTo({top: 0});
         };
 
         window.closeReader = async () => { 
-            // Збереження прогресу читання перед виходом
             if (activeUid && currentMaterial) {
                 try {
                     await updateDoc(doc(db, 'users', activeUid, 'materials', currentMaterial.id), {
@@ -1471,6 +1573,7 @@
 
             document.getElementById('library-read-view').classList.add('hidden'); 
             document.getElementById('library-list-view').classList.remove('hidden'); 
+            document.getElementById('reader-settings-panel').classList.add('hidden');
             if(ytPlayer && typeof ytPlayer.destroy === 'function') { ytPlayer.destroy(); ytPlayer = null; }
             if(syncInterval) clearInterval(syncInterval); closeInlinePopup(); 
             window.removeEventListener('scroll', handlePiPScroll);
@@ -1524,7 +1627,6 @@
         window.changeReaderPage = (direction) => {
             const newPage = readerCurrentPage + direction;
             if (newPage >= 1 && newPage <= readerTotalPages) {
-                // Зберігаємо поточну сторінку у базі при зміні
                 if (activeUid && currentMaterial) {
                     updateDoc(doc(db, 'users', activeUid, 'materials', currentMaterial.id), {
                         lastPage: newPage
@@ -1557,9 +1659,9 @@
 
         function renderMarkAsReadBtn() {
             if (currentMaterial.isRead) {
-                return `<div class="mt-8 text-center p-4 bg-slate-100 rounded-xl border border-slate-200 text-slate-500 font-bold flex items-center justify-center gap-2 shadow-sm"><span>✅</span> Матеріал опрацьовано</div>`;
+                return `<div class="mt-10 text-center p-4 bg-slate-100 rounded-xl border border-slate-200 text-slate-500 font-bold flex items-center justify-center gap-2 shadow-sm font-sans text-base"><span>✅</span> Матеріал опрацьовано</div>`;
             }
-            return `<button onclick="markCurrentAsRead()" class="mt-10 w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-bold font-sans text-lg shadow-md transition flex justify-center items-center gap-2 active:scale-95"><span>✅ Позначити матеріал як опрацьований</span></button>`;
+            return `<button onclick="markCurrentAsRead()" class="mt-10 w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-bold font-sans text-base sm:text-lg shadow-md transition flex justify-center items-center gap-2 active:scale-95"><span>✅ Позначити матеріал як опрацьований</span></button>`;
         }
 
         function renderReaderContent() {
@@ -1604,21 +1706,19 @@
                         }
                     }
                 });
-                container.innerHTML = `<div class="text-reader">${finalHtml}</div>`;
+                container.innerHTML = finalHtml;
             } else {
                 const pageText = currentPageData || "";
                 const lines = pageText.split('\n'); 
                 let finalHtml = '';
-                lines.forEach(lineText => { if(!lineText.trim()) return; finalHtml += `<div class="mb-4">${wrapWords(lineText, savedWordsMap)}</div>`; });
+                lines.forEach(lineText => { if(!lineText.trim()) return; finalHtml += `<div class="mb-4 text-justify">${wrapWords(lineText, savedWordsMap)}</div>`; });
                 container.innerHTML = finalHtml;
             }
 
-            // Рендер кнопки опрацювання матеріалу (тільки на останній сторінці)
             if (readerCurrentPage === readerTotalPages) {
                 container.innerHTML += renderMarkAsReadBtn();
             }
 
-            // Оновлення блоку навігації по сторінках тексту
             document.getElementById('reader-page-info').textContent = `Сторінка ${readerCurrentPage} з ${readerTotalPages}`;
             document.getElementById('btn-reader-prev').disabled = (readerCurrentPage === 1);
             document.getElementById('btn-reader-next').disabled = (readerCurrentPage === readerTotalPages);
@@ -1626,6 +1726,7 @@
         }
 
         const inlinePopup = document.getElementById('inline-popup');
+        
         document.getElementById('reader-content').addEventListener('click', (e) => {
             if (e.target.classList.contains('word-clickable') && window.getSelection().toString().trim().length === 0) {
                 e.stopPropagation(); const word = e.target.getAttribute('data-word'); const rect = e.target.getBoundingClientRect();
@@ -1642,16 +1743,25 @@
             }
         });
 
-        // Selection support for phrases/expressions
-        const handleTextSelection = (e) => {
-            setTimeout(() => {
+        let selectionTimeout;
+        document.addEventListener('selectionchange', () => {
+            if (document.getElementById('library-read-view').classList.contains('hidden')) return;
+            
+            clearTimeout(selectionTimeout);
+            selectionTimeout = setTimeout(() => {
                 const selection = window.getSelection();
                 const text = selection.toString().trim();
                 
+                const readerContent = document.getElementById('reader-content');
+                if (!readerContent) return;
+                
                 if (text.length > 0 && text.length <= 150 && !text.includes('\n\n')) {
+                    if (selection.rangeCount === 0) return;
                     const range = selection.getRangeAt(0);
-                    const rect = range.getBoundingClientRect();
                     
+                    if (!readerContent.contains(range.commonAncestorContainer)) return;
+
+                    const rect = range.getBoundingClientRect();
                     if(rect.width === 0 && rect.height === 0) return;
                     
                     const popupWidth = Math.min(288, window.innerWidth * 0.9);
@@ -1664,17 +1774,19 @@
                     inlinePopup.style.left = `${calculatedLeft}px`; 
                     processInlineTranslationRequest(text, currentMaterial ? currentMaterial.content : '');
                 }
-            }, 100);
-        };
+            }, 500); 
+        });
 
-        document.getElementById('reader-content').addEventListener('mouseup', handleTextSelection);
-        document.getElementById('reader-content').addEventListener('touchend', handleTextSelection);
-
-        document.addEventListener('click', (e) => { if(!inlinePopup.classList.contains('hidden') && !inlinePopup.contains(e.target) && !e.target.classList.contains('word-clickable')) closeInlinePopup(); });
+        document.addEventListener('click', (e) => { 
+            if(!inlinePopup.classList.contains('hidden') && !inlinePopup.contains(e.target) && !e.target.classList.contains('word-clickable')) {
+                closeInlinePopup(); 
+            }
+        });
+        
         document.getElementById('inline-popup-trans-input').addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); saveWordFromInlinePopup(); } });
 
         window.selectInlineTranslation = (text) => { document.getElementById('inline-popup-trans-input').value = text; }
-        window.closeInlinePopup = () => { inlinePopup.classList.add('hidden'); pendingInlineSaveData = null; };
+        window.closeInlinePopup = () => { inlinePopup.classList.add('hidden'); pendingInlineSaveData = null; window.getSelection().removeAllRanges(); };
 
         window.toggleInlineDict = () => {
             const content = document.getElementById('inline-dict-content');
@@ -1876,7 +1988,7 @@
                     return { ...originalWord, failed: false }; 
                 });
                 
-                mainEl.classList.replace('max-w-3xl', 'max-w-5xl');
+                mainEl.classList.replace('max-w-4xl', 'max-w-5xl');
                 mainCard.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100 text-center relative overflow-hidden flex flex-col min-h-[300px] w-full lg:w-7/12";
                 extClues.classList.remove('hidden');
             } else {
@@ -1901,7 +2013,7 @@
                 
                 if(bsWords.length === 0) return;
                 
-                mainEl.classList.replace('max-w-5xl', 'max-w-3xl');
+                mainEl.classList.replace('max-w-5xl', 'max-w-4xl');
                 mainCard.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100 text-center relative overflow-hidden flex flex-col min-h-[300px] w-full";
                 extClues.classList.add('hidden');
             }
@@ -1947,7 +2059,7 @@
             const mainEl = document.querySelector('main');
             const mainCard = document.getElementById('bs-main-card');
             const extClues = document.getElementById('bs-external-clues');
-            mainEl.classList.replace('max-w-5xl', 'max-w-3xl');
+            mainEl.classList.replace('max-w-5xl', 'max-w-4xl');
             mainCard.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100 text-center relative overflow-hidden flex flex-col min-h-[300px] w-full";
             extClues.classList.add('hidden');
         };
@@ -1986,7 +2098,7 @@
             const mainEl = document.querySelector('main');
             const mainCard = document.getElementById('bs-main-card');
             const extClues = document.getElementById('bs-external-clues');
-            mainEl.classList.replace('max-w-5xl', 'max-w-3xl');
+            mainEl.classList.replace('max-w-5xl', 'max-w-4xl');
             mainCard.className = "bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100 text-center relative overflow-hidden flex flex-col min-h-[300px] w-full";
             extClues.classList.add('hidden');
 
@@ -2032,7 +2144,6 @@
                 resultsTitle = "Спринт завершено!";
                 resultsSubtitle = `<div class="text-lg font-extrabold text-indigo-600 mb-4 bg-indigo-50 py-2 px-4 rounded-xl inline-block shadow-inner border border-indigo-100">Ваш рахунок: ${sprintScore} балів!</div>`;
                 
-                // Зберігання рекорду Спринту у Firestore
                 try {
                     let updatedScores = [...sprintHighScores];
                     updatedScores.push({ score: sprintScore, date: Date.now() });
@@ -2040,19 +2151,33 @@
                     updatedScores = updatedScores.slice(0, 3); 
                     
                     const statsDocRef = doc(db, 'users', activeUid, 'stats', 'sprint');
-                    await setDoc(statsDocRef, { topScores: updatedScores });
+                    await setDoc(statsDocRef, { topScores: updatedScores }, { merge: true });
                     sprintHighScores = updatedScores;
                 } catch (e) { console.error("Error saving sprint score:", e); }
 
-                // Рендер лідерборду
                 lbdSection.classList.remove('hidden');
                 const listEl = document.getElementById('sprint-leaderboard-list');
-                listEl.innerHTML = sprintHighScores.map((s, idx) => `
-                    <li class="flex justify-between items-center py-1 border-b border-indigo-100 last:border-0">
-                        <span>${idx + 1}. Рекорд: ${s.score} балів</span>
+                const medals = ['🥇', '🥈', '🥉'];
+                
+                let html = sprintHighScores.map((s, idx) => `
+                    <li class="flex justify-between items-center py-1.5 border-b border-indigo-100 last:border-0">
+                        <span class="font-bold text-slate-800 text-base flex items-center gap-2"><span class="text-xl">${medals[idx] || (idx+1)+'.'}</span> ${s.score} балів</span>
                         <span class="text-xs text-slate-400 font-medium">${new Date(s.date).toLocaleDateString()}</span>
                     </li>
                 `).join('');
+
+                const madeItToTop3 = sprintHighScores.some(s => s.score === sprintScore && s.date >= Date.now() - 5000);
+                if (!madeItToTop3 && sprintHighScores.length >= 3) {
+                    html += `
+                        <li class="text-center text-slate-300 font-black py-0.5 leading-none mt-1">...</li>
+                        <li class="flex justify-between items-center py-1.5 px-3 bg-indigo-100/50 rounded-lg mt-1 border border-indigo-100">
+                            <span class="font-bold text-indigo-700 text-sm">Ваш результат:</span>
+                            <span class="font-bold text-indigo-700 text-sm">${sprintScore} балів</span>
+                        </li>
+                    `;
+                }
+
+                listEl.innerHTML = html;
             } else {
                 lbdSection.classList.add('hidden');
             }
@@ -2244,8 +2369,7 @@
 
         function renderStageContext(word, area, btnNext, feedback) {
             let contextStr = word.context || "";
-            const cleanWord = word.word.toLowerCase();
-            const regex = new RegExp(`\\b${cleanWord}\\b`, 'gi');
+            const cleanWord = word.word.toLowerCase().trim();
             
             if (!contextStr.toLowerCase().includes(cleanWord)) {
                 area.innerHTML = `<p class="text-lg text-slate-500">Контекст не знайдено для <b>${word.word}</b></p>`;
@@ -2253,8 +2377,22 @@
                 return;
             }
 
-            const replacedContext = contextStr.replace(regex, `<input type="text" id="ctx-type-input" class="inline-context-input" autocomplete="off">`);
+            const escapedWord = cleanWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const wordBoundaryRegex = new RegExp(`\\b${escapedWord}\\b`, 'i');
             
+            let replacedContext = "";
+            if (wordBoundaryRegex.test(contextStr)) {
+                replacedContext = contextStr.replace(wordBoundaryRegex, `<input type="text" id="ctx-type-input" class="inline-context-input" autocomplete="off">`);
+            } else {
+                const strictFallbackRegex = new RegExp(`(^|[^a-zA-Zа-яА-ЯіїєґІЇЄҐ0-9])(${escapedWord})([^a-zA-Zа-яА-ЯіїєґІЇЄҐ0-9]|$)`, 'i');
+                if (strictFallbackRegex.test(contextStr)) {
+                    replacedContext = contextStr.replace(strictFallbackRegex, `$1<input type="text" id="ctx-type-input" class="inline-context-input" autocomplete="off">$3`);
+                } else {
+                    const looseRegex = new RegExp(`(${escapedWord})`, 'i');
+                    replacedContext = contextStr.replace(looseRegex, `<input type="text" id="ctx-type-input" class="inline-context-input" autocomplete="off">`);
+                }
+            }
+
             area.innerHTML = `
                 <p class="text-lg text-indigo-700 font-bold mb-4 uppercase tracking-wider">${word.translation}</p>
                 <div class="text-xl text-slate-700 font-medium leading-relaxed italic border-l-4 border-indigo-200 pl-5 py-2 text-left inline-block max-w-xl mx-auto relative bg-slate-50/50 rounded-r-xl">
@@ -2935,7 +3073,6 @@
             document.getElementById(`view-${tab}`).classList.remove('hidden'); 
             document.getElementById(`tab-${tab}`).className = 'flex-1 py-3.5 text-indigo-600 border-b-[3px] border-indigo-600 transition-colors font-bold';
             
-            // Захист від накладання вікон у вкладці Бібліотека
             if (tab === 'library') {
                 document.getElementById('library-add-view').classList.add('hidden');
                 document.getElementById('library-read-view').classList.add('hidden');
